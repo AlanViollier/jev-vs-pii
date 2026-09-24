@@ -1,0 +1,51 @@
+repos:
+  ## Free safety net — fast, language-agnostic, catches real mistakes.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key            # SSH / RSA keys in a commit
+      - id: check-added-large-files       # default 500 KB cap; bump per-project if needed
+        args: ['--maxkb=500']
+      - id: check-merge-conflict          # left a `<<<<<<<` marker
+      - id: check-yaml                    # all .yaml / .yml parse
+      - id: check-toml                    # all .toml parse
+      - id: check-json                    # all .json parse
+      - id: end-of-file-fixer             # file ends with single newline
+      - id: trailing-whitespace           # strips trailing whitespace
+        args: ['--markdown-linebreak-ext=md']   # preserves intentional `  ` line breaks in .md
+
+  ## Secrets scanner. Catches API keys, tokens, cloud creds before they leave the laptop.
+  ## Complements `detect-private-key` above, which only covers SSH/RSA.
+  ## Allow-list / regex tuning goes in `.gitleaks.toml` at repo root if needed.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  ## Python security linter (SAST). Catches: hardcoded secrets, weak crypto
+  ## (md5/sha1), eval/exec, yaml.load (not safe_load), shell injection patterns.
+  ## Skips:
+  ##   B101 — assert (fine in tests; we run pytest with -O off)
+  ##   B404/B603/B607 — subprocess usage (intentional in our scripts)
+  ## Extend in pyproject.toml [tool.bandit] if needed.
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.0
+    hooks:
+      - id: bandit
+        args: ['--skip', 'B101,B404,B603,B607']
+
+  ## Project-level quality gate. Runs ruff format-check, ruff lint (incl. BLE, T20),
+  ## lint-slop, mypy, pytest.
+  - repo: local
+    hooks:
+      - id: private-context
+        name: block private working context
+        entry: private working context must stay out of this repo
+        language: fail
+        files: '^(llm_context/|\.claude/|CLAUDE\.md$|\.cursor/|INIT\.md$|LIB_CATALOG\.md$|TEMPLATE_CHANGELOG\.md$)'
+      - id: make-check
+        name: make check
+        entry: make check
+        language: system
+        pass_filenames: false
+        always_run: true

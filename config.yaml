@@ -1,0 +1,7 @@
+# pii_bench runtime configuration
+
+project: pii_bench
+version: 0.1.0
+
+logging:
+  level: INFO
