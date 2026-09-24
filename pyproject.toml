@@ -15,7 +15,11 @@ dependencies = [
     "rich>=13",               # human-facing terminal + traceback
     "structlog>=24.1",        # structured logging — default for any pipeline
     "tenacity>=8.2",          # retry/backoff for transient I/O — drop only if the project has no flaky calls
+    "typer>=0.27.2",
 ]
+
+[project.scripts]
+pii-bench = "pii_bench.cli:app"
 
 [project.optional-dependencies]
 dev = [
@@ -59,6 +63,8 @@ venv = ".venv"
 
 [tool.mypy]
 explicit_package_bases = true
+strict = true
+plugins = ["pydantic.mypy"]
 
 [tool.interrogate]
 fail-under = 60
