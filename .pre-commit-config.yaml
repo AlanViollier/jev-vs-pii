@@ -40,9 +40,10 @@ repos:
     hooks:
       - id: private-context
         name: block private working context
-        entry: private working context must stay out of this repo
-        language: fail
-        files: '^(llm_context/|\.claude/|CLAUDE\.md$|\.cursor/|INIT\.md$|LIB_CATALOG\.md$|TEMPLATE_CHANGELOG\.md$)'
+        entry: bash -c 'if git diff --cached --name-only | grep -E "^(llm_context|\.claude|\.cursor|CLAUDE\.md|INIT\.md|LIB_CATALOG\.md|TEMPLATE_CHANGELOG\.md)(/|$)"; then echo "private working context must stay out of this repo"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: make-check
         name: make check
         entry: make check
