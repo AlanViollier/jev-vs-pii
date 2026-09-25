@@ -48,5 +48,5 @@ LIB_CATALOG.md
 TEMPLATE_CHANGELOG.md
 
 # Downloaded datasets and cached API responses
-data/
+/data/
 .cache/

@@ -6,9 +6,11 @@ from decimal import Decimal
 from functools import cache
 from pathlib import Path
 
-from pydantic import BaseModel, SecretStr
+import yaml
+from pydantic import BaseModel, SecretStr, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pii_bench.exceptions import ConfigError
 from pii_bench.schema import Residency
 
 
@@ -51,4 +53,8 @@ def get_settings(config_path: Path = Path("config.yaml")) -> AppSettings:
     AppSettings
         Validated settings; raises `ConfigError` when the file doesn't validate.
     """
-    raise NotImplementedError
+    values = yaml.safe_load(config_path.read_text()) or {}
+    try:
+        return AppSettings(**values)
+    except ValidationError as error:
+        raise ConfigError(f"{config_path}: {error}") from error

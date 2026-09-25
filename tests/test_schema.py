@@ -8,7 +8,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from pii_bench.decode import DecodeParams, Hysteresis, Viterbi
-from pii_bench.schema import Span, Usage, Word, WordScore
+from pii_bench.schema import Doc, Span, Usage, Word, WordScore
 
 
 @pytest.mark.parametrize("model", [Span, Word])
@@ -41,3 +41,9 @@ def test_decode_params_round_trip_by_kind() -> None:
         high=0.7, low=0.2
     )
     assert isinstance(adapter.validate_python({"kind": "viterbi"}), Viterbi)
+
+
+def test_tab_doc_must_name_its_subject() -> None:
+    with pytest.raises(ValidationError):
+        Doc(id="d", dataset="tab", split="test", text="x", gold=())
+    assert Doc(id="d", dataset="ai4privacy", split="test", text="x", gold=()).subject is None

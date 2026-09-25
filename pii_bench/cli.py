@@ -7,6 +7,8 @@ from typing import Annotated
 
 import typer
 
+from pii_bench.config import get_settings
+from pii_bench.data import fetch_ai4privacy, fetch_tab
 from pii_bench.schema import Dataset, Split, Tier
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -15,7 +17,9 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
 @app.command()
 def fetch() -> None:
     """Download both datasets and TAB's evaluation script into the data dir."""
-    raise NotImplementedError
+    data_dir = get_settings().data_dir
+    for fetched in (fetch_ai4privacy(data_dir), fetch_tab(data_dir)):
+        typer.echo(f"ok  {fetched}")
 
 
 @app.command()

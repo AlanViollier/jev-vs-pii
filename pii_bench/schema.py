@@ -50,7 +50,10 @@ class Span(_Frozen):
 
 
 class Doc(_Frozen):
-    """One gold document. `gold` is the primary annotation; `other_annotators` holds TAB's extra ones."""
+    """One gold document. `gold` is the primary annotation; `other_annotators` holds TAB's extra ones.
+
+    `subject` is the person TAB asks to protect; its gold only masks what re-identifies them.
+    """
 
     id: str
     dataset: Dataset
@@ -58,6 +61,13 @@ class Doc(_Frozen):
     text: str
     gold: tuple[Span, ...]
     other_annotators: tuple[tuple[Span, ...], ...] = ()
+    subject: str | None = None
+
+    @model_validator(mode="after")
+    def _tab_names_its_subject(self) -> Self:
+        if self.dataset == "tab" and not self.subject:
+            raise ValueError(f"TAB doc {self.id} needs the subject its gold protects")
+        return self
 
 
 class WordScore(_Frozen):

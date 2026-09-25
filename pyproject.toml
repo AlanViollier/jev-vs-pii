@@ -16,6 +16,8 @@ dependencies = [
     "structlog>=24.1",        # structured logging — default for any pipeline
     "tenacity>=8.2",          # retry/backoff for transient I/O — drop only if the project has no flaky calls
     "typer>=0.27.2",
+    "huggingface-hub>=2.0",    # ai4privacy download, pinned revision
+    "httpx>=0.28",             # TAB download + Decisions API
 ]
 
 [project.scripts]
@@ -63,6 +65,7 @@ venv = ".venv"
 
 [tool.mypy]
 explicit_package_bases = true
+exclude = ["^data/"]  # downloaded third-party code (TAB's evaluation.py)
 strict = true
 plugins = ["pydantic.mypy"]
 
@@ -71,6 +74,7 @@ fail-under = 60
 ignore-init-method = true
 ignore-magic = true
 ignore-module = true
+exclude = ["data"]  # downloaded third-party code
 verbose = 0
 
 [tool.pytest.ini_options]

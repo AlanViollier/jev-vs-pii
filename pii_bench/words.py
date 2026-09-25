@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from collections.abc import Sequence
 
 from pii_bench.schema import Span, Word
+
+_TOKEN = re.compile(r"\S+")
 
 
 def split_words(text: str) -> list[Word]:
@@ -19,8 +23,22 @@ def split_words(text: str) -> list[Word]:
     -------
     list[Word]
         Words in order; `text[w.start:w.end] == w.text` for every word.
+        Tokens made only of punctuation are dropped. Symbols (`+`, `$`, `€`, `#`) are
+        kept because they are often part of the PII itself. Known edge cases: a
+        leading hyphen is trimmed (`-5` -> `5`), so is an abbreviation's last stop
+        (`U.S.` -> `U.S`), and a lone symbol is its own word (`a + b` -> `+`).
+        Gold labels match by overlap, so trimming never changes a word's label.
     """
-    raise NotImplementedError
+    words = []
+    for match in _TOKEN.finditer(text):
+        start, end = match.span()
+        while start < end and _is_punct(text[start]):
+            start += 1
+        while end > start and _is_punct(text[end - 1]):
+            end -= 1
+        if start < end:
+            words.append(Word(text=text[start:end], start=start, end=end))
+    return words
 
 
 def gold_word_labels(words: Sequence[Word], gold: Sequence[Span]) -> list[bool]:
@@ -38,4 +56,9 @@ def gold_word_labels(words: Sequence[Word], gold: Sequence[Span]) -> list[bool]:
     list[bool]
         One flag per word.
     """
-    raise NotImplementedError
+    return [any(w.start < s.end and s.start < w.end for s in gold) for w in words]
+
+
+def _is_punct(char: str) -> bool:
+    """Unicode punctuation (categories P*): quotes, brackets, dashes, stops."""
+    return unicodedata.category(char).startswith("P")

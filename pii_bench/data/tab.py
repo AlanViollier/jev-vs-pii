@@ -1,0 +1,86 @@
+"""Load TAB court judgments. Gold = mentions that must be masked (DIRECT + QUASI)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, TypeAdapter
+
+from pii_bench.data.fetch import TAB_FILES
+from pii_bench.schema import Doc, Span, Split
+from pii_bench.taxonomy import to_coarse
+
+
+class _Mention(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    start_offset: int
+    end_offset: int
+    entity_type: str
+    identifier_type: Literal["DIRECT", "QUASI", "NO_MASK"]
+
+
+class _Annotation(BaseModel):
+    entity_mentions: list[_Mention]
+
+
+class _Meta(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    applicant: str
+
+
+class _TabDoc(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    doc_id: str
+    text: str
+    meta: _Meta
+    annotations: dict[str, _Annotation]
+
+
+_TAB_DOCS = TypeAdapter(list[_TabDoc])
+
+
+def load_tab(data_dir: Path, split: Split) -> list[Doc]:
+    """Load one TAB split with every annotator's masking decisions.
+
+    Parameters
+    ----------
+    data_dir:
+        Root data directory holding the fetched files.
+    split:
+        `dev` or `test`, 127 docs each.
+
+    Returns
+    -------
+    list[Doc]
+        The first annotator is `gold`; the rest go to `other_annotators`. `subject` is
+        the applicant, the person the annotators were asked to protect.
+    """
+    raw = _TAB_DOCS.validate_json((data_dir / "tab" / TAB_FILES[split]).read_bytes())
+    return [_to_doc(doc, split) for doc in raw]
+
+
+def _to_doc(doc: _TabDoc, split: Split) -> Doc:
+    first, *others = (_masked_spans(a) for a in doc.annotations.values())
+    return Doc(
+        id=doc.doc_id,
+        dataset="tab",
+        split=split,
+        text=doc.text,
+        gold=first,
+        other_annotators=tuple(others),
+        subject=doc.meta.applicant,
+    )
+
+
+def _masked_spans(annotation: _Annotation) -> tuple[Span, ...]:
+    """One annotator's DIRECT and QUASI mentions, in text order."""
+    spans = {
+        Span(start=m.start_offset, end=m.end_offset, label=to_coarse("tab", m.entity_type))
+        for m in annotation.entity_mentions
+        if m.identifier_type != "NO_MASK"
+    }
+    return tuple(sorted(spans, key=lambda span: (span.start, span.end)))
