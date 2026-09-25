@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import random
 from collections.abc import Callable, Sequence
+
+from pii_bench.utils.stats import percentile
 
 
 def bootstrap_ci(
@@ -32,4 +35,7 @@ def bootstrap_ci(
     tuple[float, float]
         Lower and upper bound.
     """
-    raise NotImplementedError
+    rng = random.Random(seed)  # nosec B311: reproducible resampling, not security
+    doc_ids = range(n_docs)
+    stats = [statistic(rng.choices(doc_ids, k=n_docs)) for _ in range(n_resamples)]
+    return percentile(stats, 100 * alpha / 2), percentile(stats, 100 * (1 - alpha / 2))

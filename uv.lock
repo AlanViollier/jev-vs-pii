@@ -867,6 +867,15 @@ wheels = [
 ]
 
 [[package]]
+name = "nervaluate"
+version = "1.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/ed/0fe2138de98f057d39093bb15f5f84a3b4429e4e2d749f92677ab98c2659/nervaluate-1.2.1.tar.gz", hash = "sha256:f63a3df9bb346ff76f6ccee39839d5ef598a1710878d19deed94860df1b3d62b", size = 43281, upload-time = "2026-03-12T19:24:23.582Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/05/b0/dcb6abebc5906c0c74d07a34dedc9429a38a3a847afb56d71c19a86bec47/nervaluate-1.2.1-py3-none-any.whl", hash = "sha256:f7401943620ea312eb2253983f27b646f6d0cbfff3105037c3d7125317e522a3", size = 17255, upload-time = "2026-03-12T19:24:22.562Z" },
+]
+
+[[package]]
 name = "nodeenv"
 version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -923,6 +932,7 @@ dev = [
     { name = "hypothesis" },
     { name = "interrogate" },
     { name = "mypy" },
+    { name = "nervaluate" },
     { name = "pip-audit" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -937,6 +947,7 @@ requires-dist = [
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
     { name = "interrogate", marker = "extra == 'dev'", specifier = ">=1.7" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
+    { name = "nervaluate", marker = "extra == 'dev'", specifier = ">=1.2" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.7" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.7" },
     { name = "pydantic", specifier = ">=2.7" },

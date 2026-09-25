@@ -13,7 +13,7 @@ Split = Literal["dev", "test"]
 Tier = Literal["smoke", "pilot", "full"]
 Family = Literal["rules", "ner", "jev", "llm", "cascade"]
 Residency = Literal["local", "eu_hosted", "us_gdpr_agreement"]
-MatchMode = Literal["exact", "overlap"]
+MatchMode = Literal["word", "exact"]
 
 
 class _Frozen(BaseModel):

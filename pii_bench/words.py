@@ -1,7 +1,8 @@
-"""Split text into words with character offsets, and label words against gold spans."""
+"""Split text into words with character offsets, and find which span covers each word."""
 
 from __future__ import annotations
 
+import bisect
 import re
 import unicodedata
 from collections.abc import Sequence
@@ -41,22 +42,30 @@ def split_words(text: str) -> list[Word]:
     return words
 
 
-def gold_word_labels(words: Sequence[Word], gold: Sequence[Span]) -> list[bool]:
-    """Mark each word positive when it overlaps any gold span.
+def covering_spans(words: Sequence[Word], spans: Sequence[Span]) -> list[Span | None]:
+    """Find, for each word, the span that overlaps it.
 
     Parameters
     ----------
     words:
         Output of `split_words` on the doc text.
-    gold:
-        Gold spans of the same doc.
+    spans:
+        Gold or predicted spans of the same doc, any order.
 
     Returns
     -------
-    list[bool]
-        One flag per word.
+    list[Span | None]
+        One entry per word: the earliest-starting span sharing a character with it,
+        or None. A word is positive exactly when its entry is not None.
     """
-    return [any(w.start < s.end and s.start < w.end for s in gold) for w in words]
+    covering: list[Span | None] = [None] * len(words)
+    for span in sorted(spans, key=lambda span: span.start, reverse=True):
+        first = bisect.bisect_right(words, span.start, key=lambda word: word.end)
+        for i in range(first, len(words)):
+            if words[i].start >= span.end:
+                break
+            covering[i] = span
+    return covering
 
 
 def _is_punct(char: str) -> bool:

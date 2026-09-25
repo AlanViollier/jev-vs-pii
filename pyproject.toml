@@ -33,6 +33,7 @@ dev = [
     "types-pyyaml>=6.0.12",
     "hypothesis>=6.100",      # property tests; drop only if the project has nothing invariant to assert
     "pip-audit>=2.7",         # CVE scan against PyPI advisory DB; run via `make audit` + CI
+    "nervaluate>=1.2",        # test oracle for exact span matching
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -74,7 +75,7 @@ fail-under = 60
 ignore-init-method = true
 ignore-magic = true
 ignore-module = true
-exclude = ["data"]  # downloaded third-party code
+exclude = ["data", "tests"]  # downloaded third-party code; test names are their docs
 verbose = 0
 
 [tool.pytest.ini_options]

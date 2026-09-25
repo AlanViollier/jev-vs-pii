@@ -1,4 +1,4 @@
-"""Word splitting keeps exact offsets; gold labelling marks words that touch a gold span."""
+"""Word splitting keeps exact offsets; a word is covered by any span sharing a character with it."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from pii_bench.schema import Span
-from pii_bench.words import gold_word_labels, split_words
+from pii_bench.words import covering_spans, split_words
 
 _texts = st.text(
     alphabet=st.one_of(
@@ -73,26 +73,53 @@ def test_offsets_skip_leading_punctuation() -> None:
     assert (word.start, word.end) == (3, 8)
 
 
-def test_word_is_positive_when_it_overlaps_any_gold_span() -> None:
+def test_word_is_covered_when_it_overlaps_any_span() -> None:
     text = "Send it to Marie Dupont at Lyon today."
     words = split_words(text)
     marie = text.index("Marie")
     lyon = text.index("Lyon")
-    # the Lyon span covers only "yo": a partial overlap still makes the word positive
-    gold = [Span(start=marie, end=marie + len("Marie Dupont")), Span(start=lyon + 1, end=lyon + 3)]
-    labels = gold_word_labels(words, gold)
-    assert len(labels) == len(words)
-    assert [w.text for w, positive in zip(words, labels, strict=True) if positive] == [
-        "Marie",
-        "Dupont",
-        "Lyon",
+    # the Lyon span covers only "yo": a partial overlap still covers the word
+    name = Span(start=marie, end=marie + len("Marie Dupont"), label="PERSON")
+    city = Span(start=lyon + 1, end=lyon + 3, label="LOCATION")
+    covering = covering_spans(words, [city, name])
+    assert len(covering) == len(words)
+    assert [(w.text, span.label) for w, span in zip(words, covering, strict=True) if span] == [
+        ("Marie", "PERSON"),
+        ("Dupont", "PERSON"),
+        ("Lyon", "LOCATION"),
     ]
 
 
-def test_span_touching_a_word_edge_does_not_overlap_it() -> None:
+def test_span_touching_a_word_edge_does_not_cover_it() -> None:
     words = split_words("ab cd")
-    assert gold_word_labels(words, [Span(start=2, end=3)]) == [False, False]
+    assert covering_spans(words, [Span(start=2, end=3)]) == [None, None]
 
 
-def test_no_gold_means_no_positive_words() -> None:
-    assert gold_word_labels(split_words("nothing here"), []) == [False, False]
+def test_earliest_starting_span_wins_a_shared_word() -> None:
+    words = split_words("ab cd")
+    early = Span(start=0, end=4, label="PERSON")
+    late = Span(start=3, end=5, label="ID")
+    assert covering_spans(words, [late, early]) == [early, early]
+
+
+def test_no_spans_covers_nothing() -> None:
+    assert covering_spans(split_words("nothing here"), []) == [None, None]
+
+
+@settings(max_examples=100)
+@given(_texts, st.lists(st.tuples(st.integers(0, 200), st.integers(1, 20)), max_size=8))
+def test_covering_matches_brute_force(text: str, raw: list[tuple[int, int]]) -> None:
+    words = split_words(text)
+    spans = [Span(start=start, end=start + length) for start, length in raw]
+    expected = [
+        min(
+            (s for s in spans if s.start < w.end and w.start < s.end),
+            key=lambda s: s.start,
+            default=None,
+        )
+        for w in words
+    ]
+    got = covering_spans(words, spans)
+    assert [None if s is None else s.start for s in got] == [
+        None if s is None else s.start for s in expected
+    ]
