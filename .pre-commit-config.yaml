@@ -34,7 +34,7 @@ repos:
       - id: bandit
         args: ['--skip', 'B101,B404,B603,B607']
 
-  ## Project-level quality gate. Runs ruff format-check, ruff lint (incl. BLE, T20),
+  ## Project-level quality gate. Runs ruff lint (incl. BLE, T20),
   ## lint-slop, mypy, pytest.
   - repo: local
     hooks:

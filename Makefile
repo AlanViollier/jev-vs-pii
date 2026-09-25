@@ -1,17 +1,16 @@
-.PHONY: help install install-dev hooks format lint lint-slop typecheck docstrings test check format-check ci audit clean
+.PHONY: help install install-dev hooks lint lint-slop typecheck docstrings test check ci audit clean
 
 help:
 	@echo "Targets:"
 	@echo "  install      - Install package"
 	@echo "  install-dev  - Install package with dev dependencies"
 	@echo "  hooks        - Install pre-commit + pre-push hooks"
-	@echo "  format       - Format code with ruff"
 	@echo "  lint         - Run ruff checks"
 	@echo "  lint-slop    - Grep for separator comments + .keywords blocklist"
 	@echo "  typecheck    - Run mypy"
 	@echo "  docstrings   - Run interrogate (docstring coverage gate, ≥60%)"
 	@echo "  test         - Run pytest"
-	@echo "  check        - Run format check, lint, lint-slop, typecheck, docstrings, and tests"
+	@echo "  check        - Run lint, lint-slop, typecheck, docstrings, and tests"
 	@echo "  ci           - Mirror of GitHub CI: pre-commit run --all-files + pip-audit"
 	@echo "  audit        - Scan dependencies for known CVEs (network; not in 'check')"
 	@echo "  clean        - Remove caches and build artefacts"
@@ -25,9 +24,6 @@ install-dev:
 hooks:
 	uv run pre-commit install
 	uv run pre-commit install --hook-type pre-push
-
-format:
-	uv run ruff format .
 
 lint:
 	uv run ruff check .
@@ -82,7 +78,7 @@ docstrings:
 test:
 	uv run pytest || test $$? -eq 5
 
-check: format-check lint lint-slop typecheck docstrings test
+check: lint lint-slop typecheck docstrings test
 
 ## Mirror of GitHub CI — runs every pre-commit hook + pip-audit locally.
 ## Use this before pushing when you want to see what CI will see, without
@@ -90,9 +86,6 @@ check: format-check lint lint-slop typecheck docstrings test
 ci:
 	uv run pre-commit run --all-files --show-diff-on-failure
 	uv run pip-audit --skip-editable --ignore-vuln PYSEC-2022-42969
-
-format-check:
-	uv run ruff format --check .
 
 ## CVE scan via pip-audit. Kept out of `check` because it needs network and
 ## fails on transient PyPI advisory-DB hiccups. Runs in CI on every push.

@@ -26,7 +26,7 @@ jobs:
         run: uv sync --extra dev
 
       ## Single source of truth: every hook in .pre-commit-config.yaml runs here,
-      ## including the local `make check` hook (format-check, lint, lint-slop,
+      ## including the local `make check` hook (lint, lint-slop,
       ## mypy, pytest). If a contributor bypassed local pre-commit with --no-verify,
       ## CI catches it.
       - name: Run all pre-commit hooks
