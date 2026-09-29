@@ -24,6 +24,11 @@ dependencies = [
 pii-bench = "pii_bench.cli:main"
 
 [project.optional-dependencies]
+## The `presidio` lane: Presidio's analyzer and the spaCy model it loads by default.
+ner = [
+    "presidio-analyzer>=2.2",
+    "en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.9",
@@ -35,6 +40,9 @@ dev = [
     "pip-audit>=2.7",         # CVE scan against PyPI advisory DB; run via `make audit` + CI
     "nervaluate>=1.2",        # test oracle for exact span matching
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true  # the spaCy model wheel is only published on GitHub
 
 [tool.hatch.build.targets.wheel]
 packages = ["pii_bench"]
@@ -69,6 +77,10 @@ explicit_package_bases = true
 exclude = ["^data/"]  # downloaded third-party code (TAB's evaluation.py)
 strict = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["presidio_analyzer.*"]
+ignore_missing_imports = true  # optional extra, absent in CI
 
 [tool.interrogate]
 fail-under = 60

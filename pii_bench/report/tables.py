@@ -31,7 +31,7 @@ def results_table(rows: Sequence[ResultRow]) -> str:
         f"| {row.scores.precision:.3f} | {row.scores.recall:.3f} "
         f"| {_maybe(row.ece)} "
         f"| {row.cost.usd_per_1k_docs:.3f} | {row.cost.calls_per_doc:.1f} "
-        f"| {row.cost.latency_p50_s:.2f} "
+        f"| {row.cost.latency_p50_s:.2g} "
         f"| {_failures(row)} |"
         for row in _by_f2(rows)
     ]
