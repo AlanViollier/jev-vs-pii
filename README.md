@@ -40,7 +40,8 @@ anonymiser. Jev is tested as a preview of where decision models are going.
 - → **Per-word scores become spans through a decoder**: threshold, hysteresis, gap closing or Viterbi. Each is tuned on dev for every lane that scores words (Jev, Privacy Filter, GLiNER-PII); the headline row uses whichever won on dev, never on test.
 - → **Privacy Filter** is decoded with OpenAI's own constrained Viterbi (`opf` package) at its default operating point; its spans match OpenAI's reference runtime.
 - → **LLMs** run at temperature 0 under a strict JSON schema where the format has one. An answer that is cut off or won't parse counts as finding nothing, and the reason is recorded.
-- → **Reasoning** is tested on one model, DeepSeek V4 Flash, with thinking off and on, pinned to one provider so nothing else changes.
+- → **Reasoning** is tested on one model, DeepSeek V4 Flash, with thinking off and on, on the same fp8 providers so nothing else changes.
+- → **Answer formats** (offsets, tagged rewrite) are compared on one model over the 60-doc dev pilot only: both loop to the output cap often enough that full test sets would take hours for a gap the pilot already shows.
 
 | model key | OpenRouter id |
 |---|---|
@@ -48,7 +49,7 @@ anonymiser. Jev is tested as a preview of where decision models are going.
 | `qwen3-235b` | `qwen/qwen3-235b-a22b-2507` |
 | `gpt4.1-nano` | `openai/gpt-4.1-nano` |
 | `llama3-8b` | `meta-llama/llama-3.1-8b-instruct` |
-| `deepseek-v4-flash` / `-think` | `deepseek/deepseek-v4-flash`, thinking off / on, DeepInfra |
+| `deepseek-v4-flash` / `-think` | `deepseek/deepseek-v4-flash`, thinking off / on, DeepInfra · Parasail · Alibaba |
 | `haiku4.5` | `anthropic/claude-haiku-4.5` |
 | Jev | `typesafe/jev-1.13` (Decisions API) |
 

@@ -120,15 +120,15 @@ DATASETS := ai4privacy tab nemotron
 comma := ,
 space := $(empty) $(empty)
 FREE_LANES := mask_all,regex,presidio,privacy_filter,gliner_pii
-JEV_LANES := jev_words,jev_typed,jev_bio
-MODELS := qwen3-30b qwen3-235b gpt4.1-nano llama3-8b deepseek-v4-flash deepseek-v4-flash-think haiku4.5
+JEV_LANES := jev_words,jev_typed
+MODELS := qwen3-30b qwen3-235b gpt4.1-nano deepseek-v4-flash deepseek-v4-flash-think haiku4.5
 LLM_LANES := $(subst $(space),$(comma),$(foreach model,$(MODELS),llm_sayback:$(model)))
-## The answer-format study, one model in every format: dev pilot only. Offsets and tagged
-## rewrites loop to the output cap often enough that full test sets would take hours for a
-## gap the pilot already shows.
-FORMAT_LANES := llm_offsets:qwen3-30b,llm_tagged:qwen3-30b
+## Dev pilot only, each settled by it: the answer-format study (offsets and tagged rewrites
+## loop to the output cap, hours on full test sets), jev_bio (no gain over jev_words at twice
+## the cost) and Llama 3.1 8B (loops under a strict schema on up to 60% of docs).
+PILOT_ONLY := llm_offsets:qwen3-30b,llm_tagged:qwen3-30b,jev_bio,llm_sayback:llama3-8b
 TEST_LANES := $(FREE_LANES),$(JEV_LANES),$(LLM_LANES)
-PILOT_LANES := $(TEST_LANES),$(FORMAT_LANES)
+PILOT_LANES := $(TEST_LANES),$(PILOT_ONLY)
 
 bench-free:
 	for dataset in $(DATASETS); do \

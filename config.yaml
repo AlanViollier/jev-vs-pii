@@ -1,7 +1,7 @@
 ## Benchmark settings. Secrets live in .env; every key here is validated at startup.
 
 ## Hard stop for paid API spend across every run (the ledger lives in .cache/).
-budget_cap_usd: 6.00
+budget_cap_usd: 8.00
 
 ## Generative models, all through OpenRouter. Key = the name used in lane ids
 ## (llm_sayback:qwen3-30b). Prices are OpenRouter list prices per million tokens,

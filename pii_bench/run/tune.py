@@ -12,14 +12,15 @@ from pii_bench.metrics.spans import doc_counts, scores_from_counts
 from pii_bench.schema import Dataset, Doc, LaneRun
 from pii_bench.words import split_words
 
-_CUTOFFS = [round(0.05 * step, 2) for step in range(1, 20)]
+## Finer at the bottom: small PII models put real hits at scores of a few percent.
+_CUTOFFS = [0.01, 0.02, 0.03, *(round(0.05 * step, 2) for step in range(1, 20))]
 
 ## Every decoder with a coarse grid over its knobs; tuning picks the best of each kind.
 GRID: dict[str, list[DecodeParams]] = {
     "threshold": [Threshold(cutoff=c) for c in _CUTOFFS],
     "hysteresis": [
         Hysteresis(high=high, low=low)
-        for high in _CUTOFFS[4::2]
+        for high in _CUTOFFS[7::2]
         for low in _CUTOFFS[::2]
         if low < high
     ],
