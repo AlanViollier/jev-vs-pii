@@ -174,6 +174,38 @@ def predicted_hits_by_type(docs: Sequence[Doc], preds: Sequence[Sequence[Span]])
     return {label: (hits[label], count) for label, count in total.items()}
 
 
+def cleared_hits(docs: Sequence[Doc], preds: Sequence[Sequence[Span]]) -> Hits:
+    """How much of what the annotator left in clear a lane masked anyway: context over-masking.
+
+    Parameters
+    ----------
+    docs:
+        Gold docs carrying `cleared` entities (TAB's NO_MASK).
+    preds:
+        Predicted spans per doc, same order as `docs`.
+
+    Returns
+    -------
+    Hits
+        (masked words inside cleared entities, words inside cleared entities), leaving out
+        words that some gold span also covers.
+    """
+    masked = total = 0
+    for doc, pred in zip(docs, preds, strict=True):
+        words = split_words(doc.text)
+        for gold, cleared, guess in zip(
+            covering_spans(words, doc.gold),
+            covering_spans(words, doc.cleared),
+            covering_spans(words, pred),
+            strict=True,
+        ):
+            if cleared is None or gold is not None:
+                continue
+            total += 1
+            masked += guess is not None
+    return masked, total
+
+
 def word_pairs(doc: Doc, pred: Sequence[Span]) -> list[tuple[Span | None, Span | None]]:
     """For each word of the doc: the gold span and the predicted span covering it, if any."""
     words = split_words(doc.text)

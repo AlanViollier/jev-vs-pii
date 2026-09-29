@@ -5,11 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from pii_bench.data.ai4privacy import load_ai4privacy
+from pii_bench.data.nemotron import load_nemotron
 from pii_bench.data.tab import load_tab
 from pii_bench.schema import Dataset, Doc, Split
 
-## ai4privacy is sampled (500 keeps a F2 CI near ±0.02 inside the €2 budget); TAB is used whole.
-AI4PRIVACY_SIZES: dict[Split, int] = {"dev": 500, "test": 500}
+## ai4privacy and Nemotron-PII are sampled (500 keeps a F2 CI near ±0.02); TAB is used whole.
+SAMPLE_SIZE = 500
 
 
 def load_docs(data_dir: Path, dataset: Dataset, split: Split, seed: int) -> list[Doc]:
@@ -20,11 +21,11 @@ def load_docs(data_dir: Path, dataset: Dataset, split: Split, seed: int) -> list
     data_dir:
         Root data directory holding the fetched files.
     dataset:
-        `ai4privacy` or `tab`.
+        `ai4privacy`, `tab` or `nemotron`.
     split:
         `dev` (tuning only) or `test` (reported numbers).
     seed:
-        ai4privacy sampling seed.
+        Sampling seed for the sampled datasets.
 
     Returns
     -------
@@ -32,5 +33,7 @@ def load_docs(data_dir: Path, dataset: Dataset, split: Split, seed: int) -> list
         Same docs, same order, on every call with the same arguments.
     """
     if dataset == "ai4privacy":
-        return load_ai4privacy(data_dir, split, AI4PRIVACY_SIZES[split], seed)
+        return load_ai4privacy(data_dir, split, SAMPLE_SIZE, seed)
+    if dataset == "nemotron":
+        return load_nemotron(data_dir, split, SAMPLE_SIZE, seed)
     return load_tab(data_dir, split)

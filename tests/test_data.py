@@ -6,11 +6,13 @@ import json
 from pathlib import Path
 
 import httpx
+import pyarrow as pa  # type: ignore[import-untyped]  # ships no type hints
+import pyarrow.parquet as pq  # type: ignore[import-untyped]
 import pytest
 
 from pii_bench.data import fetch as fetch_module
-from pii_bench.data import load_ai4privacy, load_tab
-from pii_bench.data.fetch import AI4PRIVACY_FILES, TAB_FILES, fetch_tab
+from pii_bench.data import load_ai4privacy, load_nemotron, load_tab
+from pii_bench.data.fetch import AI4PRIVACY_FILES, NEMOTRON_FILES, TAB_FILES, fetch_tab
 from pii_bench.schema import Split
 
 
@@ -121,6 +123,45 @@ def test_tab_gold_is_masked_mentions_of_first_annotator(tmp_path: Path) -> None:
     assert [[doc.text[s.start : s.end] for s in spans] for spans in doc.other_annotators] == [
         ["Ivo Brandt"]
     ]
+    assert [doc.text[s.start : s.end] for s in doc.cleared] == ["Court of Appeal"]
+    assert [s.detail for s in doc.gold] == ["DIRECT PERSON", "QUASI DATETIME", "QUASI LOC"]
+
+
+def _nemotron_row(uid: str, text: str, fmt: str, spans: list[tuple[str, str]]) -> dict[str, str]:
+    mentions = [
+        {
+            "start": text.index(value),
+            "end": text.index(value) + len(value),
+            "text": value,
+            "label": label,
+        }
+        for value, label in spans
+    ]
+    return {"uid": uid, "text": text, "spans": str(mentions), "document_format": fmt}
+
+
+def test_nemotron_keeps_aligned_unstructured_docs_with_fine_labels(tmp_path: Path) -> None:
+    text = "Dear Lena Ortiz, your account 88-1203 was reviewed on 2024-02-11."
+    good = [("Lena", "first_name"), ("Ortiz", "last_name"), ("88-1203", "account_number")]
+    rows = [
+        *(_nemotron_row(f"u{i}", text, "unstructured", good) for i in range(3)),
+        _nemotron_row("form", text, "structured", good),
+        _nemotron_row("shifted", text, "unstructured", [("Lena", "first_name")]),
+    ]
+    rows[-1]["spans"] = str([{"start": 0, "end": 4, "text": "Lena", "label": "first_name"}])
+    path = tmp_path / "nemotron" / NEMOTRON_FILES["test"]
+    path.parent.mkdir(parents=True)
+    pq.write_table(pa.Table.from_pylist(rows), path)
+
+    docs = load_nemotron(tmp_path, "test", n=3, seed=0)
+    assert sorted(d.id for d in docs) == ["u0", "u1", "u2"]
+    assert [(docs[0].text[s.start : s.end], s.label, s.detail) for s in docs[0].gold] == [
+        ("Lena", "PERSON", "first_name"),
+        ("Ortiz", "PERSON", "last_name"),
+        ("88-1203", "ID", "account_number"),
+    ]
+    with pytest.raises(ValueError):
+        load_nemotron(tmp_path, "test", n=4, seed=0)
 
 
 def test_fetch_tab_skips_files_already_present(

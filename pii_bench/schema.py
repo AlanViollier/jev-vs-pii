@@ -9,7 +9,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Dataset = Literal["ai4privacy", "tab"]
+Dataset = Literal["ai4privacy", "tab", "nemotron"]
 Split = Literal["dev", "test"]
 Tier = Literal["smoke", "pilot", "full"]
 Family = Literal["baseline", "human", "rules", "ner", "jev", "llm"]
@@ -61,6 +61,8 @@ class Doc(_Frozen):
     """One gold document. `gold` is the primary annotation; `other_annotators` holds TAB's extra ones.
 
     `subject` is the person TAB asks to protect; its gold only masks what re-identifies them.
+    `cleared` holds entities the annotator marked and decided need no masking (TAB's NO_MASK):
+    masking them is the over-masking that only context can avoid.
     """
 
     id: str
@@ -70,6 +72,7 @@ class Doc(_Frozen):
     gold: tuple[Span, ...]
     other_annotators: tuple[tuple[Span, ...], ...] = ()
     subject: str | None = None
+    cleared: tuple[Span, ...] = ()
 
     @model_validator(mode="after")
     def _tab_names_its_subject(self) -> Self:
@@ -219,8 +222,9 @@ class ResultRow(_Frozen):
 
     `decoder` names how per-word scores became spans (`None`: the lane's own spans);
     `headline` marks the one row per lane the results lead with (for per-word lanes, the
-    decoder that won on dev). Hit counts are words: gold words by gold type or dataset
-    label, predicted words by predicted type. `per_doc` feeds paired comparisons and plots;
+    decoder that won on dev). Hit counts are words: gold words by gold type, dataset label or
+    shape (format / context), predicted words by predicted type, and for TAB the words of
+    entities left in clear that the lane masked anyway. `per_doc` feeds paired comparisons and plots;
     `reliability` and `threshold_curve` exist for lanes that score words; the top error
     strings are kept for TAB only, whose licence allows showing its text.
     """
@@ -239,7 +243,9 @@ class ResultRow(_Frozen):
     brier: float | None = None
     gold_by_type: dict[str, Hits]
     gold_by_detail: dict[str, Hits]
+    gold_by_shape: dict[str, Hits]
     predicted_by_type: dict[str, Hits]
+    cleared_masked: Hits | None = None
     failed: int
     dropped: int
     per_doc: tuple[DocResult, ...]

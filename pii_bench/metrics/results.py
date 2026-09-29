@@ -13,6 +13,7 @@ from pii_bench.metrics.curve import threshold_curve
 from pii_bench.metrics.errors import top_errors
 from pii_bench.metrics.spans import (
     DocCounts,
+    cleared_hits,
     doc_counts,
     gold_hits_by,
     predicted_hits_by_type,
@@ -28,6 +29,7 @@ from pii_bench.schema import (
     ResultRow,
     Span,
 )
+from pii_bench.taxonomy import shape
 from pii_bench.words import covering_spans, split_words
 
 MODES: tuple[MatchMode, ...] = ("word", "exact")
@@ -155,7 +157,13 @@ def _row(
         brier=brier(probs, labels) if probs else None,
         gold_by_type=gold_hits_by(docs, spans, key=lambda span: span.label),
         gold_by_detail=gold_hits_by(docs, spans, key=lambda span: span.detail),
+        gold_by_shape=gold_hits_by(
+            docs,
+            spans,
+            key=lambda span: shape(lane_run.dataset, span.detail) if span.detail else None,
+        ),
         predicted_by_type=predicted_hits_by_type(docs, spans),
+        cleared_masked=cleared_hits(docs, spans) if any(d.cleared for d in docs) else None,
         failed=sum(p.failed for p in lane_run.predictions),
         dropped=sum(p.dropped for p in lane_run.predictions),
         per_doc=tuple(

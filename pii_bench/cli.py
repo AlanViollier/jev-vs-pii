@@ -18,7 +18,7 @@ from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, T
 
 from pii_bench.clients import ChatClient, DecisionsClient, Ledger, ResponseCache
 from pii_bench.config import AppSettings, get_settings
-from pii_bench.data import fetch_ai4privacy, fetch_tab, load_docs
+from pii_bench.data import fetch_ai4privacy, fetch_nemotron, fetch_tab, load_docs
 from pii_bench.decode import describe
 from pii_bench.exceptions import BudgetExceeded, PiiBenchError
 from pii_bench.lanes import Lane, LaneDeps, build_lane
@@ -45,9 +45,9 @@ _DECODERS_FILE = "decoders.json"
 
 @app.command()
 def fetch() -> None:
-    """Download both datasets and TAB's evaluation script into the data dir."""
+    """Download the three datasets and TAB's evaluation script into the data dir."""
     data_dir = get_settings().data_dir
-    for fetched in (fetch_ai4privacy(data_dir), fetch_tab(data_dir)):
+    for fetched in (fetch_ai4privacy(data_dir), fetch_tab(data_dir), fetch_nemotron(data_dir)):
         typer.echo(f"ok  {fetched}")
 
 

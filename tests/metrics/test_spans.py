@@ -9,6 +9,7 @@ from nervaluate import Evaluator  # type: ignore[import-untyped]  # ships no typ
 
 from pii_bench.metrics.spans import (
     DocCounts,
+    cleared_hits,
     doc_counts,
     gold_hits_by,
     predicted_hits_by_type,
@@ -119,3 +120,18 @@ def test_exact_matches_nervaluate(gold: list[Span], pred: list[Span], typed: boo
     assert ours.tp == counts.correct
     assert ours.tp + ours.fp == counts.actual
     assert ours.tp + ours.fn == counts.possible
+
+
+def test_cleared_hits_count_masking_of_what_the_annotator_left_in_clear() -> None:
+    text = "Ivo Brandt sued Norway before the Court of Appeal"
+    doc = Doc(
+        id="d",
+        dataset="tab",
+        split="test",
+        text=text,
+        gold=(_span(text, "Ivo Brandt", "PERSON"),),
+        subject="Ivo Brandt",
+        cleared=(_span(text, "Norway"), _span(text, "Court of Appeal")),
+    )
+    pred = [_span(text, "Ivo Brandt"), _span(text, "Norway")]
+    assert cleared_hits([doc], [pred]) == (1, 4)

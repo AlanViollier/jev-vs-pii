@@ -49,6 +49,8 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
                 paired_table(others, best_jev, seed),
             ]
         sections += [
+            "### Format vs context: recall on PII found by its form vs by its meaning",
+            _shape_table(word),
             "### Cost and time per doc",
             cost_table([row for row in word if row.lane.family != "human"]),
             "### Recall by gold type (word level)",
@@ -63,7 +65,7 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
             ]
         else:
             sections += [
-                f"### Recall by ai4privacy label (labels with ≥ {_MIN_LABEL_WORDS} gold words)",
+                f"### Recall by {dataset} label (labels with ≥ {_MIN_LABEL_WORDS} gold words)",
                 hits_table(word, lambda row: row.gold_by_detail, min_total=_MIN_LABEL_WORDS),
             ]
         sections += [
@@ -83,6 +85,35 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
         if dataset == "tab":
             sections += ["### Most leaked and most over-masked strings", _errors(word)]
     return "\n\n".join(sections) + "\n"
+
+
+def _shape_table(rows: Sequence[ResultRow]) -> str:
+    """Recall on format-shaped vs context-shaped gold, plus TAB's context over-masking."""
+    cleared = any(row.cleared_masked for row in rows)
+    header = "| lane | format recall | context recall | gap |"
+    header += " left-in-clear masked (lower is better) |" if cleared else ""
+    lines = [header, "|---|---|---|---|" + ("---|" if cleared else "")]
+    for row in sorted(rows, key=lambda row: row.scores.f2, reverse=True):
+        format_recall = _ratio(row.gold_by_shape.get("format"))
+        context_recall = _ratio(row.gold_by_shape.get("context"))
+        gap = (
+            f"{format_recall - context_recall:+.2f}"
+            if format_recall is not None and context_recall is not None
+            else "–"
+        )
+        line = f"| {row.name} | {_fmt(format_recall)} | {_fmt(context_recall)} | {gap} |"
+        if cleared:
+            line += f" {_fmt(_ratio(row.cleared_masked))} |"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _ratio(hits: Hits | None) -> float | None:
+    return hits[0] / hits[1] if hits and hits[1] else None
+
+
+def _fmt(value: float | None) -> str:
+    return "–" if value is None else f"{value:.2f}"
 
 
 def _regrouped(group_of: Callable[[str], str]) -> Callable[[ResultRow], dict[str, Hits]]:

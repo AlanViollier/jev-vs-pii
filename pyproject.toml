@@ -18,6 +18,7 @@ dependencies = [
     "typer>=0.27.2",
     "huggingface-hub>=2.0",    # ai4privacy download, pinned revision
     "httpx>=0.28",             # TAB download + Decisions API
+    "pyarrow>=17",
 ]
 
 [project.scripts]

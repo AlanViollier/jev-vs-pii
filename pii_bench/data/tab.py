@@ -56,28 +56,29 @@ def load_tab(data_dir: Path, split: Split) -> list[Doc]:
     Returns
     -------
     list[Doc]
-        The first annotator is `gold`; the rest go to `other_annotators`. `subject` is
-        the applicant, the person the annotators were asked to protect.
+        The first annotator is `gold` and, for what it left unmasked, `cleared`; the rest go
+        to `other_annotators`. `subject` is the applicant, the person to protect.
     """
     raw = _TAB_DOCS.validate_json((data_dir / "tab" / TAB_FILES[split]).read_bytes())
     return [_to_doc(doc, split) for doc in raw]
 
 
 def _to_doc(doc: _TabDoc, split: Split) -> Doc:
-    first, *others = (_masked_spans(a) for a in doc.annotations.values())
+    first, *others = doc.annotations.values()
     return Doc(
         id=doc.doc_id,
         dataset="tab",
         split=split,
         text=doc.text,
-        gold=first,
-        other_annotators=tuple(others),
+        gold=_spans(first, masked=True),
+        other_annotators=tuple(_spans(a, masked=True) for a in others),
         subject=doc.meta.applicant,
+        cleared=_spans(first, masked=False),
     )
 
 
-def _masked_spans(annotation: _Annotation) -> tuple[Span, ...]:
-    """One annotator's DIRECT and QUASI mentions, in text order."""
+def _spans(annotation: _Annotation, masked: bool) -> tuple[Span, ...]:
+    """One annotator's mentions to mask (DIRECT, QUASI) or to leave (NO_MASK), in text order."""
     spans = {
         Span(
             start=m.start_offset,
@@ -86,6 +87,6 @@ def _masked_spans(annotation: _Annotation) -> tuple[Span, ...]:
             detail=f"{m.identifier_type} {m.entity_type}",
         )
         for m in annotation.entity_mentions
-        if m.identifier_type != "NO_MASK"
+        if (m.identifier_type != "NO_MASK") == masked
     }
     return tuple(sorted(spans, key=lambda span: (span.start, span.end)))
