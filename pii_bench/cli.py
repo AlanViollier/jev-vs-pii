@@ -23,6 +23,7 @@ from pii_bench.decode import describe
 from pii_bench.exceptions import BudgetExceeded, PiiBenchError
 from pii_bench.lanes import Lane, LaneDeps, build_lane
 from pii_bench.metrics.results import human_lane_run, score_lane_run
+from pii_bench.report.svg import pareto_svg
 from pii_bench.report.tables import recall_by_type_table, results_table
 from pii_bench.run import (
     load_lane_runs,
@@ -135,8 +136,18 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
 
 @app.command()
 def report(run_dir: Annotated[Path, typer.Argument()]) -> None:
-    """Build the HTML report for a scored run."""
-    raise NotImplementedError
+    """Draw the README chart from a scored run: headline F2 vs $/1k docs, one panel per dataset."""
+    rows = [
+        ResultRow.model_validate(row) for row in json.loads((run_dir / "scores.json").read_text())
+    ]
+    panels = []
+    for dataset in ("ai4privacy", "tab"):
+        chosen = [r for r in rows if r.dataset == dataset and r.mode == "word" and r.headline]
+        if chosen:
+            panels.append((f"{dataset} · {chosen[0].split} · word-level F2", chosen))
+    path = run_dir / "pareto.svg"
+    path.write_text(pareto_svg(panels))
+    _console.print(f"→ {path}")
 
 
 def _deps(settings: AppSettings, ledger: Ledger, cache: ResponseCache) -> LaneDeps:

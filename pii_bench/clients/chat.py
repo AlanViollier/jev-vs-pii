@@ -100,8 +100,9 @@ class ChatClient:
         payload: dict[str, Any] = {
             "model": model.id,
             "messages": [message.model_dump() for message in messages],
+            ## No seed: Anthropic's endpoints reject it, and with `require_parameters` that
+            ## would rule them out entirely.
             "temperature": 0,
-            "seed": 0,
             "max_tokens": MAX_OUTPUT_TOKENS,
         }
         if json_schema is not None:
