@@ -20,7 +20,7 @@ from pii_bench.lanes import jev
 from pii_bench.lanes.jev_designs import BIO, TYPED, WORDS, in_context
 from pii_bench.lanes.registry import LaneDeps, build_lane
 from pii_bench.schema import Doc
-from pii_bench.taxonomy import DEFINITIONS
+from pii_bench.taxonomy import DEFINITIONS, definition
 from pii_bench.words import split_words
 
 _DOC = Doc(
@@ -116,11 +116,12 @@ def test_jev_lanes_score_every_word_and_decode_the_name(tmp_path: Path, lane_id:
 
 def test_jev_questions_per_word_by_design(tmp_path: Path) -> None:
     words = split_words(_DOC.text)
-    assert set(WORDS.ask(_DOC.text, words, 2)) == {"p2"}
-    assert set(BIO.ask(_DOC.text, words, 0)) == {"p0"}
-    assert set(BIO.ask(_DOC.text, words, 2)) == {"p2", "c2"}
-    typed = TYPED.ask(_DOC.text, words, 2)["t2"]
+    assert set(WORDS.ask(_DOC, words, 2)) == {"p2"}
+    assert set(BIO.ask(_DOC, words, 0)) == {"p0"}
+    assert set(BIO.ask(_DOC, words, 2)) == {"p2", "c2"}
+    typed = TYPED.ask(_DOC, words, 2)["t2"]
     assert set(typed.criteria) - {"NONE"} == set(DEFINITIONS)  # type: ignore[union-attr]  # TYPED asks a choice
+    assert typed.criteria["NONE"] == "not personal information"  # type: ignore[union-attr]
 
 
 def test_typed_scores_carry_the_type(tmp_path: Path) -> None:
@@ -131,9 +132,12 @@ def test_typed_scores_carry_the_type(tmp_path: Path) -> None:
 def test_long_docs_are_split_into_concurrent_calls(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(jev, "MAX_QUESTIONS_PER_CALL", 2)
+    ## Room for the state plus about two questions per call: 5 words -> 3 calls.
+    state_chars = len(json.dumps(f"{definition(_DOC)}\n\nText:\n{_DOC.text}"))
+    monkeypatch.setattr(jev, "MAX_INPUT_TOKENS", (state_chars + 260) / 2.4)
     prediction, jev_server, _ = _predict(tmp_path, "jev_words")
     assert len(jev_server.requests) == 3
+    assert sorted(len(r["questions"]) for r in jev_server.requests) == [1, 2, 2]
     assert prediction.usage.calls == 3
     assert prediction.usage.cost_usd == Decimal("0.00003")
     assert _found(prediction) == ["Marie Dupont"]
@@ -179,13 +183,21 @@ def test_tagged_lane_sends_no_schema(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "handler", [_chat_answer("not json"), _chat_answer('{"items": [', finish_reason="length")]
+    ("lane_id", "handler", "failure"),
+    [
+        ("llm_sayback:small", _chat_answer("not json"), "unparseable"),
+        ("llm_sayback:small", _chat_answer('{"items": [', finish_reason="length"), "truncated"),
+        ("llm_tagged:small", _chat_answer("Here is a list: <PERSON>Marie</PERSON>"), "misaligned"),
+    ],
 )
-def test_unusable_answer_counts_as_finding_nothing(tmp_path: Path, handler: Handler) -> None:
-    prediction, _, _ = _predict(tmp_path, "llm_sayback:small", handler)
-    assert prediction.failed
+def test_unusable_answer_counts_as_finding_nothing_and_says_why(
+    tmp_path: Path, lane_id: str, handler: Handler, failure: str
+) -> None:
+    prediction, _, _ = _predict(tmp_path, lane_id, handler)
+    assert (prediction.failed, prediction.failure) == (True, failure)
     assert prediction.spans == ()
     assert prediction.usage.calls == 1
+    assert prediction.answer and prediction.provider == "SomeHost"
 
 
 @pytest.mark.parametrize("lane_id", ["llm_sayback:nope", "regex:small", "nope", "llm_sayback"])

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pii_bench.clients import Choice, Noul
 from pii_bench.clients.decisions import ChoiceAnswer, NoulAnswer
 from pii_bench.exceptions import ProviderError
-from pii_bench.schema import Word, WordScore
+from pii_bench.schema import Doc, Word, WordScore
 
 ## Words either side of the asked word, so repeats of the same word stay distinguishable.
 _CONTEXT_BEFORE = 3
@@ -19,7 +19,6 @@ _CONTEXT_AFTER = 2
 _NONE = "NONE"
 ## Short option texts: the full definitions are already in the state.
 _TYPE_OPTIONS = {
-    _NONE: "not personal information",
     "PERSON": "a name or title",
     "LOCATION": "a place tied to a person",
     "CONTACT": "email, phone, handle or IP",
@@ -30,7 +29,7 @@ _TYPE_OPTIONS = {
 
 Question = Noul | Choice
 Answer = NoulAnswer | ChoiceAnswer
-AskWord = Callable[[str, Sequence[Word], int], dict[str, Question]]
+AskWord = Callable[[Doc, Sequence[Word], int], dict[str, Question]]
 ScoreWord = Callable[[Mapping[str, Answer], int], WordScore]
 
 
@@ -52,31 +51,31 @@ def in_context(text: str, words: Sequence[Word], i: int) -> str:
     return " ".join(snippet.split())
 
 
-def _ask_is_pii(text: str, words: Sequence[Word], i: int) -> dict[str, Question]:
+def _ask_is_pii(doc: Doc, words: Sequence[Word], i: int) -> dict[str, Question]:
     return {
         f"p{i}": Noul(
-            instructions=f'In "{in_context(text, words, i)}", is the bracketed word personal information?'
+            instructions=f'In "{in_context(doc.text, words, i)}", is the bracketed word personal information?'
         )
     }
 
 
-def _ask_continues(text: str, words: Sequence[Word], i: int) -> dict[str, Question]:
-    questions = _ask_is_pii(text, words, i)
+def _ask_continues(doc: Doc, words: Sequence[Word], i: int) -> dict[str, Question]:
+    questions = _ask_is_pii(doc, words, i)
     if i > 0:
         questions[f"c{i}"] = Noul(
             instructions=(
-                f'In "{in_context(text, words, i)}", is the bracketed word part of the same '
+                f'In "{in_context(doc.text, words, i)}", is the bracketed word part of the same '
                 "piece of information as the word right before it?"
             )
         )
     return questions
 
 
-def _ask_type(text: str, words: Sequence[Word], i: int) -> dict[str, Question]:
+def _ask_type(doc: Doc, words: Sequence[Word], i: int) -> dict[str, Question]:
     return {
         f"t{i}": Choice(
-            instructions=f'In "{in_context(text, words, i)}", what is the bracketed word?',
-            criteria=_TYPE_OPTIONS,
+            instructions=f'In "{in_context(doc.text, words, i)}", what is the bracketed word?',
+            criteria={_NONE: "not personal information", **_TYPE_OPTIONS},
         )
     }
 
@@ -101,7 +100,7 @@ def _score_type(answers: Mapping[str, Answer], i: int) -> WordScore:
     answer = answers[f"t{i}"]
     if not isinstance(answer, ChoiceAnswer):
         raise ProviderError(f"t{i}: expected a choice answer, got {answer.type}")
-    probs = {label: answer.probabilities.get(label, 0.0) for label in _TYPE_OPTIONS}
+    probs = {label: answer.probabilities.get(label, 0.0) for label in [_NONE, *_TYPE_OPTIONS]}
     p_pii = min(max(1.0 - probs.pop(_NONE), 0.0), 1.0)
     return WordScore(p_pii=p_pii, label_probs=probs)
 

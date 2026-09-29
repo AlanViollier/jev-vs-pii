@@ -12,6 +12,8 @@ from pii_bench.decode import Threshold
 from pii_bench.lanes.mask_all import MaskAllLane
 from pii_bench.lanes.regex import RegexLane
 from pii_bench.metrics.results import human_lane_run, score_lane_run
+from pii_bench.report.markdown import results_markdown
+from pii_bench.report.tables import pareto_frontier
 from pii_bench.run import (
     load_lane_runs,
     load_tuned,
@@ -145,3 +147,35 @@ def test_human_row_uses_the_second_annotator_on_docs_that_have_one() -> None:
     (word, _) = score_lane_run(human, docs)
     assert (word.scores.precision, word.scores.recall) == (1.0, 2 / 3)
     assert human_lane_run([_doc(2)]) is None
+
+
+def test_rows_carry_per_doc_results_hit_counts_curves_and_tab_errors() -> None:
+    docs = [_doc(0), _doc(1)]
+    run = _lane_run([_scored(d, {"ann@example.org": 0.9, "Ann": 0.3, "Lee": 0.3}) for d in docs])
+    (word, exact) = score_lane_run(run, docs, Threshold(cutoff=0.5))
+    assert [d.doc_id for d in word.per_doc] == ["d0", "d1"]
+    assert word.gold_by_type == {"CONTACT": (2, 2), "PERSON": (0, 4)}
+    assert word.top_missed == (("ann lee", 2),)
+    ## Curves describe raw word scores, so only the undecoded row has them.
+    assert word.threshold_curve is None
+    (raw, _) = score_lane_run(run, docs)
+    assert raw.threshold_curve is not None and raw.reliability is not None
+
+
+def test_results_page_has_every_section_and_a_paired_comparison() -> None:
+    docs = [_doc(i) for i in range(3)]
+    jev = _lane_run([_scored(d, {"ann@example.org": 0.9, "Ann": 0.6, "Lee": 0.6}) for d in docs])
+    regex = _lane_run([asyncio.run(RegexLane().predict(d)) for d in docs]).model_copy(
+        update={"lane": LaneInfo(id="regex", family="rules")}
+    )
+    rows = [
+        *score_lane_run(jev, docs, Threshold(cutoff=0.5)),
+        *score_lane_run(regex, docs),
+    ]
+    page = results_markdown(rows)
+    for section in ("Word level", "paired bootstrap", "Cost and time", "DIRECT", "Exact span"):
+        assert section in page
+    assert "| regex | -" in page
+    assert pareto_frontier([row for row in rows if row.mode == "word"]) == {
+        "jev_words · threshold cutoff=0.5"
+    }

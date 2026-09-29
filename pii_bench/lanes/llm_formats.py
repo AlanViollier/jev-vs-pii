@@ -103,8 +103,8 @@ OFFSETS = AnswerFormat(
 TAGGED = AnswerFormat(
     name="tagged",
     instructions=(
-        "Rewrite the text exactly as given, changing nothing, but wrap every piece of personal "
-        "information in a tag naming its type, like <PERSON>Jane Roe</PERSON>. "
+        "Rewrite the text exactly as given, changing nothing, but wrap every piece of "
+        "personal information in a tag naming its type, like <PERSON>Jane Roe</PERSON>. "
         "Answer with the rewritten text only."
     ),
     json_schema=None,

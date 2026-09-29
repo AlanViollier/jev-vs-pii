@@ -6,6 +6,9 @@ version: 0.1.0
 logging:
   level: INFO
 
+## Hard stop for paid API spend across every run (the ledger lives in .cache/).
+budget_cap_usd: 6.00
+
 ## Generative models, all through OpenRouter. Key = the name used in lane ids
 ## (llm_sayback:qwen3-30b). Prices are OpenRouter list prices per million tokens,
 ## Sep 29 2026; they only bound the budget hold, the real cost comes from each response.
@@ -22,6 +25,11 @@ models:
     id: qwen/qwen3-235b-a22b-2507
     input_usd_per_m: 0.087
     output_usd_per_m: 0.35
+  ## Reasons before answering (effort left at the provider default); reasoning tokens bill as output.
+  gpt-oss-120b:
+    id: openai/gpt-oss-120b
+    input_usd_per_m: 0.037
+    output_usd_per_m: 0.17
   gpt4.1-nano:
     id: openai/gpt-4.1-nano
     input_usd_per_m: 0.10

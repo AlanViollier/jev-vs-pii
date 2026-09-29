@@ -14,6 +14,10 @@ Split = Literal["dev", "test"]
 Tier = Literal["smoke", "pilot", "full"]
 Family = Literal["baseline", "human", "rules", "ner", "jev", "llm"]
 MatchMode = Literal["word", "exact"]
+## Why a generative lane's answer was unusable.
+Failure = Literal["truncated", "unparseable", "misaligned"]
+## (hits, total): kept as counts so any grouping can be re-aggregated later.
+Hits = tuple[int, int]
 
 
 class _Frozen(BaseModel):
@@ -35,12 +39,16 @@ class Word(_Frozen):
 
 
 class Span(_Frozen):
-    """A predicted or gold PII span. `label` is the coarse type when known; `score` when the method has one."""
+    """A predicted or gold PII span. `label` is the coarse type when known; `score` when the method has one.
+
+    `detail` keeps a gold span's own dataset label (`LASTNAME1`, `QUASI DATETIME`) for fine breakdowns.
+    """
 
     start: int = Field(ge=0)
     end: int
     label: str | None = None
     score: float | None = Field(default=None, ge=0.0, le=1.0)
+    detail: str | None = None
 
     @model_validator(mode="after")
     def _non_empty(self) -> Self:
@@ -116,8 +124,9 @@ class LaneInfo(_Frozen):
 class Prediction(_Frozen):
     """One lane's output on one doc. `word_scores` aligns with `split_words(doc.text)` when present.
 
-    `failed` marks an answer the lane couldn't use at all (it scores as finding nothing);
-    `dropped` counts items in a usable answer that couldn't be placed in the text.
+    `failed` marks an answer the lane couldn't use at all (it scores as finding nothing) and
+    `failure` says why; `dropped` counts items in a usable answer that couldn't be placed in
+    the text. Generative lanes keep their raw `answer` and the `provider` that served it.
     """
 
     doc_id: str
@@ -126,7 +135,10 @@ class Prediction(_Frozen):
     word_scores: tuple[WordScore, ...] | None = None
     usage: Usage = Usage()
     failed: bool = False
+    failure: Failure | None = None
     dropped: int = 0
+    answer: str | None = None
+    provider: str | None = None
 
 
 class LaneRun(_Frozen):
@@ -155,21 +167,62 @@ class SpanScores(_Frozen):
 
 
 class CostSummary(_Frozen):
-    """Cost and latency of a lane run, normalised per document."""
+    """Cost, time and tokens of a lane run, normalised per document."""
 
     usd_per_1k_docs: Decimal
     calls_per_doc: float
+    input_tokens_per_doc: float
+    output_tokens_per_doc: float
+    latency_mean_s: float
     latency_p50_s: float
     latency_p95_s: float
     wall_clock_s: float
 
 
+class DocResult(_Frozen):
+    """One doc's outcome for one lane: counts in the row's match mode, plus what it cost."""
+
+    doc_id: str
+    n_words: int
+    tp: int
+    fp: int
+    fn: int
+    cost_usd: Decimal
+    latency_s: float
+    input_tokens: int
+    output_tokens: int
+    failed: bool
+    dropped: int
+
+
+class CurvePoint(_Frozen):
+    """Word-level precision, recall and F2 when every word at or above `cutoff` is masked."""
+
+    cutoff: float
+    precision: float
+    recall: float
+    f2: float
+
+
+class ReliabilityBin(_Frozen):
+    """One confidence bucket: mean confidence vs how often it was right."""
+
+    low: float
+    high: float
+    count: int
+    mean_confidence: float
+    accuracy: float
+
+
 class ResultRow(_Frozen):
-    """One row of the results table: a lane on a dataset split, scored.
+    """One row of the results: a lane on a dataset split, scored in one match mode.
 
     `decoder` names how per-word scores became spans (`None`: the lane's own spans);
     `headline` marks the one row per lane the results lead with (for per-word lanes, the
-    decoder that won on dev); `failed` and `dropped` sum unusable answers and unplaceable items.
+    decoder that won on dev). Hit counts are words: gold words by gold type or dataset
+    label, predicted words by predicted type. `per_doc` feeds paired comparisons and plots;
+    `reliability` and `threshold_curve` exist for lanes that score words; the top error
+    strings are kept for TAB only, whose licence allows showing its text.
     """
 
     lane: LaneInfo
@@ -184,9 +237,16 @@ class ResultRow(_Frozen):
     cost: CostSummary
     ece: float | None = None
     brier: float | None = None
-    recall_by_type: dict[str, float]
+    gold_by_type: dict[str, Hits]
+    gold_by_detail: dict[str, Hits]
+    predicted_by_type: dict[str, Hits]
     failed: int
     dropped: int
+    per_doc: tuple[DocResult, ...]
+    reliability: tuple[ReliabilityBin, ...] | None = None
+    threshold_curve: tuple[CurvePoint, ...] | None = None
+    top_missed: tuple[tuple[str, int], ...] = ()
+    top_false_alarms: tuple[tuple[str, int], ...] = ()
 
     @property
     def name(self) -> str:

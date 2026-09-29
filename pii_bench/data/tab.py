@@ -79,7 +79,12 @@ def _to_doc(doc: _TabDoc, split: Split) -> Doc:
 def _masked_spans(annotation: _Annotation) -> tuple[Span, ...]:
     """One annotator's DIRECT and QUASI mentions, in text order."""
     spans = {
-        Span(start=m.start_offset, end=m.end_offset, label=to_coarse("tab", m.entity_type))
+        Span(
+            start=m.start_offset,
+            end=m.end_offset,
+            label=to_coarse("tab", m.entity_type),
+            detail=f"{m.identifier_type} {m.entity_type}",
+        )
         for m in annotation.entity_mentions
         if m.identifier_type != "NO_MASK"
     }

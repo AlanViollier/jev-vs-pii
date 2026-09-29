@@ -10,7 +10,8 @@ from nervaluate import Evaluator  # type: ignore[import-untyped]  # ships no typ
 from pii_bench.metrics.spans import (
     DocCounts,
     doc_counts,
-    recall_by_type,
+    gold_hits_by,
+    predicted_hits_by_type,
     score_spans,
     scores_from_counts,
 )
@@ -73,12 +74,21 @@ def test_nothing_predicted_nothing_gold_scores_zero_not_nan() -> None:
     assert (scores.precision, scores.recall, scores.f1, scores.f2) == (0.0, 0.0, 0.0, 0.0)
 
 
-def test_recall_by_type_uses_gold_labels_for_untyped_lanes() -> None:
+def test_gold_hits_group_gold_words_for_untyped_lanes() -> None:
     pred = [_span(_TEXT, "Marie Dupont"), _span(_TEXT, "Lyon")]
-    assert recall_by_type([_doc(_GOLD)], [pred]) == {
-        "PERSON": 1.0,
-        "LOCATION": pytest.approx(1 / 5),
+    assert gold_hits_by([_doc(_GOLD)], [pred], key=lambda span: span.label) == {
+        "PERSON": (2, 2),
+        "LOCATION": (1, 5),
     }
+
+
+def test_predicted_hits_measure_each_claimed_type() -> None:
+    pred = [
+        _span(_TEXT, "Marie Dupont", "PERSON"),
+        _span(_TEXT, "today", "DATETIME"),
+        _span(_TEXT, "Lyon"),
+    ]
+    assert predicted_hits_by_type([_doc(_GOLD)], [pred]) == {"PERSON": (2, 2), "DATETIME": (0, 1)}
 
 
 def test_docs_and_predictions_must_line_up() -> None:

@@ -22,6 +22,16 @@ def test_mentions_match_every_occurrence_ignoring_case_and_spacing() -> None:
     assert missing == 0
 
 
+def test_mention_tolerates_punctuation_between_its_words() -> None:
+    source = "As Mr. Daniel said, the house in Lyon, France was sold."
+    spans, missing = find_mentions(
+        source,
+        [Mention(text="Mr Daniel", label="PERSON"), Mention(text="Lyon France", label="LOCATION")],
+    )
+    assert _texts(source, [(s.start, s.end) for s in spans]) == ["Mr. Daniel", "Lyon, France"]
+    assert missing == 0
+
+
 def test_mention_never_matches_inside_a_longer_word() -> None:
     spans, _ = find_mentions("Also Al said", [Mention(text="Al", label="PERSON")])
     assert [(s.start, s.end) for s in spans] == [(5, 7)]

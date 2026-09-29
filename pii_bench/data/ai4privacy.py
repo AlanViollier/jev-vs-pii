@@ -65,7 +65,7 @@ def _is_aligned(row: _Row) -> bool:
 def _to_doc(row: _Row, split: Split) -> Doc:
     gold = sorted(
         (
-            Span(start=m.start, end=m.end, label=to_coarse("ai4privacy", m.label))
+            Span(start=m.start, end=m.end, label=to_coarse("ai4privacy", m.label), detail=m.label)
             for m in row.privacy_mask
         ),
         key=lambda span: (span.start, span.end),

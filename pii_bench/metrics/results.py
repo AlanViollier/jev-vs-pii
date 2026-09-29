@@ -7,10 +7,27 @@ from datetime import datetime
 
 from pii_bench.decode import DecodeParams, decode, describe
 from pii_bench.metrics.bootstrap import bootstrap_ci
-from pii_bench.metrics.calibration import brier, ece
+from pii_bench.metrics.calibration import brier, ece, reliability_bins
 from pii_bench.metrics.cost import cost_summary
-from pii_bench.metrics.spans import doc_counts, recall_by_type, scores_from_counts
-from pii_bench.schema import Doc, LaneInfo, LaneRun, MatchMode, Prediction, ResultRow, Span
+from pii_bench.metrics.curve import threshold_curve
+from pii_bench.metrics.errors import top_errors
+from pii_bench.metrics.spans import (
+    DocCounts,
+    doc_counts,
+    gold_hits_by,
+    predicted_hits_by_type,
+    scores_from_counts,
+)
+from pii_bench.schema import (
+    Doc,
+    DocResult,
+    LaneInfo,
+    LaneRun,
+    MatchMode,
+    Prediction,
+    ResultRow,
+    Span,
+)
 from pii_bench.words import covering_spans, split_words
 
 MODES: tuple[MatchMode, ...] = ("word", "exact")
@@ -118,6 +135,9 @@ def _row(
     labels: list[bool],
 ) -> ResultRow:
     counts = [doc_counts(doc, pred, mode) for doc, pred in zip(docs, spans, strict=True)]
+    ## Curves describe the raw word scores, so they belong to the undecoded row only.
+    curves = bool(probs) and decoder is None
+    missed, false_alarms = top_errors(docs, spans) if lane_run.dataset == "tab" else ([], [])
     return ResultRow(
         lane=lane_run.lane,
         decoder=describe(decoder) if decoder else None,
@@ -133,7 +153,33 @@ def _row(
         cost=cost_summary(lane_run.predictions, lane_run.wall_clock_s),
         ece=ece(probs, labels) if probs else None,
         brier=brier(probs, labels) if probs else None,
-        recall_by_type=recall_by_type(docs, spans),
+        gold_by_type=gold_hits_by(docs, spans, key=lambda span: span.label),
+        gold_by_detail=gold_hits_by(docs, spans, key=lambda span: span.detail),
+        predicted_by_type=predicted_hits_by_type(docs, spans),
         failed=sum(p.failed for p in lane_run.predictions),
         dropped=sum(p.dropped for p in lane_run.predictions),
+        per_doc=tuple(
+            _doc_result(doc, p, c)
+            for doc, p, c in zip(docs, lane_run.predictions, counts, strict=True)
+        ),
+        reliability=tuple(reliability_bins(probs, labels)) if curves else None,
+        threshold_curve=tuple(threshold_curve(probs, labels)) if curves else None,
+        top_missed=tuple(missed),
+        top_false_alarms=tuple(false_alarms),
+    )
+
+
+def _doc_result(doc: Doc, prediction: Prediction, counts: DocCounts) -> DocResult:
+    return DocResult(
+        doc_id=doc.id,
+        n_words=len(split_words(doc.text)),
+        tp=counts.tp,
+        fp=counts.fp,
+        fn=counts.fn,
+        cost_usd=prediction.usage.cost_usd,
+        latency_s=prediction.usage.latency_s,
+        input_tokens=prediction.usage.input_tokens,
+        output_tokens=prediction.usage.output_tokens,
+        failed=prediction.failed,
+        dropped=prediction.dropped,
     )

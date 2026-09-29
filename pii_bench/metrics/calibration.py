@@ -4,17 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from pydantic import BaseModel
-
-
-class ReliabilityBin(BaseModel):
-    """One confidence bucket: mean confidence vs how often it was right."""
-
-    low: float
-    high: float
-    count: int
-    mean_confidence: float
-    accuracy: float
+from pii_bench.schema import ReliabilityBin
 
 
 def ece(probs: Sequence[float], labels: Sequence[bool], n_bins: int = 10) -> float:

@@ -23,8 +23,8 @@ from pii_bench.decode import describe
 from pii_bench.exceptions import BudgetExceeded, PiiBenchError
 from pii_bench.lanes import Lane, LaneDeps, build_lane
 from pii_bench.metrics.results import human_lane_run, score_lane_run
+from pii_bench.report.markdown import results_markdown
 from pii_bench.report.svg import pareto_svg
-from pii_bench.report.tables import recall_by_type_table, results_table
 from pii_bench.run import (
     load_lane_runs,
     load_tuned,
@@ -129,7 +129,7 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
     (run_dir / "scores.json").write_text(
         json.dumps([row.model_dump(mode="json") for row in rows], indent=1)
     )
-    report = _markdown(rows)
+    report = results_markdown(rows, seed=settings.seed)
     (run_dir / "results.md").write_text(report)
     typer.echo(report)
 
@@ -214,34 +214,6 @@ def _with_docs(
             loaded[key] = load_docs(settings.data_dir, *key, settings.seed)
         paired.append((lane_run, loaded[key]))
     return paired
-
-
-def _markdown(rows: Sequence[ResultRow]) -> str:
-    """Per dataset split: headline, recall by type, exact match, then every decoder of per-word lanes."""
-    grouped: dict[tuple[str, str], list[ResultRow]] = defaultdict(list)
-    for row in rows:
-        grouped[(row.dataset, row.split)].append(row)
-    sections = []
-    for (dataset, split), group in sorted(grouped.items()):
-        headline = [row for row in group if row.headline]
-        word = [row for row in headline if row.mode == "word"]
-        sizes = ", ".join(sorted({f"{row.n_docs} docs" for row in word}))
-        sections += [
-            f"## {dataset} · {split} ({sizes})",
-            "### Word level (headline; per-word lanes use the decoder that won on dev)",
-            results_table(word),
-            "### Recall by gold type (word level)",
-            recall_by_type_table(word),
-            "### Exact span match",
-            results_table([row for row in headline if row.mode == "exact"]),
-        ]
-        decoded = [row for row in group if row.mode == "word" and row.lane.family == "jev"]
-        if decoded:
-            sections += [
-                "### Every decoder on the Jev word scores (word level)",
-                results_table(decoded),
-            ]
-    return "\n\n".join(sections) + "\n"
 
 
 def main() -> None:

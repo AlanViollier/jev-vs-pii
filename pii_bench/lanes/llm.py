@@ -36,19 +36,20 @@ class LlmLane:
             [Message(role="system", content=system), Message(role="user", content=doc.text)],
             self._format.json_schema,
         )
-        failed = Prediction(
-            doc_id=doc.id, lane_id=self.info.id, spans=(), usage=result.usage, failed=True
-        )
-        if result.truncated:
-            return failed
-        try:
-            spans, dropped = self._format.parse(doc.text, result.text)
-        except (ValidationError, AlignmentError):
-            return failed
-        return Prediction(
+        base = Prediction(
             doc_id=doc.id,
             lane_id=self.info.id,
-            spans=tuple(spans),
+            spans=(),
             usage=result.usage,
-            dropped=dropped,
+            answer=result.text,
+            provider=result.provider,
         )
+        if result.truncated:
+            return base.model_copy(update={"failed": True, "failure": "truncated"})
+        try:
+            spans, dropped = self._format.parse(doc.text, result.text)
+        except ValidationError:
+            return base.model_copy(update={"failed": True, "failure": "unparseable"})
+        except AlignmentError:
+            return base.model_copy(update={"failed": True, "failure": "misaligned"})
+        return base.model_copy(update={"spans": tuple(spans), "dropped": dropped})

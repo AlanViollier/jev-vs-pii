@@ -33,8 +33,8 @@ def find_mentions(source: str, mentions: Sequence[Mention]) -> tuple[list[Span],
     source:
         Original doc text.
     mentions:
-        Strings the LLM reported. Matching ignores case and treats any run of whitespace
-        as one space; a mention never matches inside a longer word.
+        Strings the LLM reported. Matching ignores case, any run of whitespace between
+        words, and punctuation beside it; a mention never matches inside a longer word.
 
     Returns
     -------
@@ -92,8 +92,9 @@ def parse_tagged(source: str, tagged: str) -> tuple[list[Span], int]:
 
 
 def _mention_pattern(text: str) -> re.Pattern[str]:
-    """Whitespace-tolerant, case-blind pattern that can't start or end mid-word."""
-    body = r"\s+".join(re.escape(token) for token in text.split())
+    """Case-blind pattern that can't start or end mid-word; between words any spacing, and
+    punctuation next to it, is allowed (`Mr Daniel` finds `Mr. Daniel`)."""
+    body = r"[^\w\s]*\s+[^\w\s]*".join(re.escape(token) for token in text.split())
     left = r"(?<!\w)" if re.match(r"\w", text.strip()) else ""
     right = r"(?!\w)" if re.search(r"\w$", text.strip()) else ""
     return re.compile(f"{left}{body}{right}", re.IGNORECASE)

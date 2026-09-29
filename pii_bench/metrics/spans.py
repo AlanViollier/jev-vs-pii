@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import NamedTuple
 
-from pii_bench.schema import Doc, MatchMode, Span, SpanScores
+from pii_bench.schema import Doc, Hits, MatchMode, Span, SpanScores
 from pii_bench.words import covering_spans, split_words
 
 
@@ -75,11 +75,8 @@ def doc_counts(doc: Doc, pred: Sequence[Span], mode: MatchMode, typed: bool = Fa
             fp=len(pred_keys - gold_keys),
             fn=len(gold_keys - pred_keys),
         )
-    words = split_words(doc.text)
     tp = fp = fn = 0
-    for gold, guess in zip(
-        covering_spans(words, doc.gold), covering_spans(words, pred), strict=True
-    ):
+    for gold, guess in word_pairs(doc, pred):
         hit = gold is not None and guess is not None and (not typed or gold.label == guess.label)
         tp += hit
         fp += guess is not None and not hit
@@ -118,8 +115,10 @@ def scores_from_counts(counts: Iterable[DocCounts]) -> SpanScores:
     )
 
 
-def recall_by_type(docs: Sequence[Doc], preds: Sequence[Sequence[Span]]) -> dict[str, float]:
-    """Word-level recall per gold type: how much of each kind of PII got masked.
+def gold_hits_by(
+    docs: Sequence[Doc], preds: Sequence[Sequence[Span]], key: Callable[[Span], str | None]
+) -> dict[str, Hits]:
+    """Word-level recall counts per group of gold spans: where each method leaks.
 
     Uses gold labels only, so it works for lanes that predict no types.
 
@@ -129,24 +128,56 @@ def recall_by_type(docs: Sequence[Doc], preds: Sequence[Sequence[Span]]) -> dict
         Gold docs.
     preds:
         Predicted spans per doc, same order as `docs`.
+    key:
+        Group of a gold span, e.g. its coarse `label` or its dataset `detail`; None skips it.
 
     Returns
     -------
-    dict[str, float]
-        Coarse label -> share of its gold words covered by some prediction.
+    dict[str, Hits]
+        Group -> (gold words covered by some prediction, gold words).
     """
+    hits: Counter[str] = Counter()
     total: Counter[str] = Counter()
-    found: Counter[str] = Counter()
     for doc, pred in zip(docs, preds, strict=True):
-        words = split_words(doc.text)
-        for gold, guess in zip(
-            covering_spans(words, doc.gold), covering_spans(words, pred), strict=True
-        ):
-            if gold is None or gold.label is None:
+        for gold, guess in word_pairs(doc, pred):
+            group = key(gold) if gold is not None else None
+            if group is None:
                 continue
-            total[gold.label] += 1
-            found[gold.label] += guess is not None
-    return {label: found[label] / count for label, count in total.items()}
+            total[group] += 1
+            hits[group] += guess is not None
+    return {group: (hits[group], count) for group, count in total.items()}
+
+
+def predicted_hits_by_type(docs: Sequence[Doc], preds: Sequence[Sequence[Span]]) -> dict[str, Hits]:
+    """Word-level precision counts per predicted type: what each type a lane claims is worth.
+
+    Parameters
+    ----------
+    docs:
+        Gold docs.
+    preds:
+        Predicted spans per doc; spans without a label are skipped.
+
+    Returns
+    -------
+    dict[str, Hits]
+        Predicted label -> (predicted words that are gold PII of any type, predicted words).
+    """
+    hits: Counter[str] = Counter()
+    total: Counter[str] = Counter()
+    for doc, pred in zip(docs, preds, strict=True):
+        for gold, guess in word_pairs(doc, pred):
+            if guess is None or guess.label is None:
+                continue
+            total[guess.label] += 1
+            hits[guess.label] += gold is not None
+    return {label: (hits[label], count) for label, count in total.items()}
+
+
+def word_pairs(doc: Doc, pred: Sequence[Span]) -> list[tuple[Span | None, Span | None]]:
+    """For each word of the doc: the gold span and the predicted span covering it, if any."""
+    words = split_words(doc.text)
+    return list(zip(covering_spans(words, doc.gold), covering_spans(words, pred), strict=True))
 
 
 def _exact_key(span: Span, typed: bool) -> tuple[int, int, str | None]:

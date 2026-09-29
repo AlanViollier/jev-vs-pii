@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-import itertools
+import json
 
 from pii_bench.clients import DecisionsClient
 from pii_bench.decode import DecodeParams, Threshold, decode
@@ -12,12 +12,14 @@ from pii_bench.schema import Doc, LaneInfo, Prediction, Usage
 from pii_bench.taxonomy import definition
 from pii_bench.words import split_words
 
-## Jev reads 32k tokens; a question with its context runs ~30, the longest TAB doc ~3k.
-MAX_QUESTIONS_PER_CALL = 400
+## Calls of 64k tokens went through, one past that was refused: stay well under.
+MAX_INPUT_TOKENS = 48_000
+## Fewest JSON characters per billed token seen on large Jev calls was 2.48, so this over-counts.
+_CHARS_PER_TOKEN = 2.4
 
 
 class JevLane:
-    """Lane `jev_<design>`: every question batched into calls that share the doc as state, run concurrently."""
+    """Lane `jev_<design>`: questions batched into as few calls as fit, each with the doc as state, run concurrently."""
 
     def __init__(
         self, client: DecisionsClient, design: JevDesign, decoder: DecodeParams | None = None
@@ -32,10 +34,10 @@ class JevLane:
         words = split_words(doc.text)
         questions: dict[str, Question] = {}
         for i in range(len(words)):
-            questions.update(self._design.ask(doc.text, words, i))
+            questions.update(self._design.ask(doc, words, i))
         state = f"{definition(doc)}\n\nText:\n{doc.text}"
         results = await asyncio.gather(
-            *(self._client.ask(state, dict(batch)) for batch in _batches(questions))
+            *(self._client.ask(state, batch) for batch in _batches(state, questions))
         )
         answers: dict[str, Answer] = {}
         for result in results:
@@ -50,5 +52,16 @@ class JevLane:
         )
 
 
-def _batches(questions: dict[str, Question]) -> list[tuple[tuple[str, Question], ...]]:
-    return list(itertools.batched(questions.items(), MAX_QUESTIONS_PER_CALL))
+def _batches(state: str, questions: dict[str, Question]) -> list[dict[str, Question]]:
+    """Split questions into calls whose estimated size, state included, fits `MAX_INPUT_TOKENS`."""
+    budget = MAX_INPUT_TOKENS * _CHARS_PER_TOKEN - len(json.dumps(state))
+    batches: list[dict[str, Question]] = [{}]
+    used = 0.0
+    for key, question in questions.items():
+        size = len(json.dumps({key: question.model_dump()}))
+        if batches[-1] and used + size > budget:
+            batches.append({})
+            used = 0.0
+        batches[-1][key] = question
+        used += size
+    return batches if batches[0] else []

@@ -115,9 +115,14 @@ clean:
 ## config (every response is cached, so a rerun pays nothing twice).
 RUN ?= runs/test
 DEV ?= runs/dev
+comma := ,
+space := $(empty) $(empty)
 FREE_LANES := mask_all,regex,presidio
-JEV_LANES := jev_words,jev_typed
-LLM_LANES := llm_sayback:qwen3-30b,llm_sayback:qwen3-235b,llm_sayback:gpt4.1-nano
+JEV_LANES := jev_words,jev_typed,jev_bio
+MODELS := qwen3-30b qwen3-235b gpt4.1-nano gpt-oss-120b llama3-8b haiku4.5
+LLM_LANES := $(subst $(space),$(comma),$(foreach model,$(MODELS),llm_sayback:$(model)))
+## The answer-format study: one model, every format.
+FORMAT_LANES := llm_offsets:qwen3-30b,llm_tagged:qwen3-30b
 
 bench-free:
 	uv run pii-bench run --lanes $(FREE_LANES) --dataset ai4privacy --tier full --out $(RUN)
@@ -129,7 +134,7 @@ bench-tune:
 	uv run pii-bench tune $(DEV)
 
 bench: bench-free bench-tune
-	uv run pii-bench run --lanes $(JEV_LANES),$(LLM_LANES),llm_tagged:qwen3-30b --dataset ai4privacy --tier full --out $(RUN)
-	uv run pii-bench run --lanes $(JEV_LANES),$(LLM_LANES) --dataset tab --tier full --out $(RUN)
+	uv run pii-bench run --lanes $(JEV_LANES),$(LLM_LANES),$(FORMAT_LANES) --dataset ai4privacy --tier full --out $(RUN)
+	uv run pii-bench run --lanes $(JEV_LANES),$(LLM_LANES),$(FORMAT_LANES) --dataset tab --tier full --out $(RUN)
 	uv run pii-bench score $(RUN)
 	uv run pii-bench report $(RUN)
