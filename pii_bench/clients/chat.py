@@ -19,6 +19,8 @@ from pii_bench.schema import Usage
 CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 ## Room for a tagged rewrite of the longest TAB judgment; also caps the budget hold.
 MAX_OUTPUT_TOKENS = 8192
+## Thinking gets its own budget on top, or it can use up the answer's.
+MAX_REASONING_TOKENS = 8192
 
 
 class Message(BaseModel):
@@ -97,24 +99,37 @@ class ChatClient:
         ChatResult
             Raises `BudgetExceeded` or `ProviderError` like `DecisionsClient.ask`.
         """
+        max_tokens = MAX_OUTPUT_TOKENS + (MAX_REASONING_TOKENS if model.reasoning else 0)
         payload: dict[str, Any] = {
             "model": model.id,
             "messages": [message.model_dump() for message in messages],
             ## No seed: Anthropic's endpoints reject it, and with `require_parameters` that
             ## would rule them out entirely.
             "temperature": 0,
-            "max_tokens": MAX_OUTPUT_TOKENS,
+            "max_tokens": max_tokens,
         }
+        if model.reasoning is not None:
+            payload["reasoning"] = (
+                {"enabled": True, "max_tokens": MAX_REASONING_TOKENS}
+                if model.reasoning
+                else {"enabled": False}
+            )
         if json_schema is not None:
             payload["response_format"] = {
                 "type": "json_schema",
                 "json_schema": {"name": "answer", "strict": True, "schema": json_schema},
             }
             payload["provider"] = {"require_parameters": True}
+        if model.provider is not None:
+            payload["provider"] = {
+                "order": [model.provider],
+                "allow_fallbacks": False,
+                **payload.get("provider", {}),
+            }
         ## A token is at least one byte, so bytes bound the input; the output cap bounds the rest.
         estimate = (
             len(json.dumps(payload).encode()) * model.input_usd_per_m
-            + MAX_OUTPUT_TOKENS * model.output_usd_per_m
+            + max_tokens * model.output_usd_per_m
         ) / 1_000_000
         response, hit = await self._cache.get_or_call(
             {"url": CHAT_URL, **payload},

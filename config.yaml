@@ -25,11 +25,19 @@ models:
     id: qwen/qwen3-235b-a22b-2507
     input_usd_per_m: 0.087
     output_usd_per_m: 0.35
-  ## Reasons before answering (effort left at the provider default); reasoning tokens bill as output.
-  gpt-oss-120b:
-    id: openai/gpt-oss-120b
-    input_usd_per_m: 0.037
-    output_usd_per_m: 0.17
+  ## One model twice, thinking off and on, same provider: isolates what reasoning buys.
+  deepseek-v4-flash:
+    id: deepseek/deepseek-v4-flash
+    input_usd_per_m: 0.14
+    output_usd_per_m: 0.28
+    reasoning: false
+    provider: DeepInfra
+  deepseek-v4-flash-think:
+    id: deepseek/deepseek-v4-flash
+    input_usd_per_m: 0.14
+    output_usd_per_m: 0.28
+    reasoning: true
+    provider: DeepInfra
   gpt4.1-nano:
     id: openai/gpt-4.1-nano
     input_usd_per_m: 0.10

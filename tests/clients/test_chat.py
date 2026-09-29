@@ -96,3 +96,26 @@ def test_error_body_is_a_provider_error_and_not_charged(tmp_path: Path) -> None:
     with pytest.raises(ProviderError):
         asyncio.run(client.complete(_MODEL, _MESSAGES))
     assert ledger.spent_usd == 0
+
+
+@pytest.mark.parametrize("reasoning", [True, False])
+def test_reasoning_switch_is_sent_only_when_set(tmp_path: Path, reasoning: bool) -> None:
+    server = _Server(_body())
+    client, _ = _client(tmp_path, server)
+    asyncio.run(client.complete(_MODEL.model_copy(update={"reasoning": reasoning}), _MESSAGES))
+    asyncio.run(client.complete(_MODEL, [Message(role="user", content="other")]))
+    assert server.requests[0]["reasoning"]["enabled"] is reasoning
+    assert server.requests[0]["max_tokens"] == (16384 if reasoning else 8192)
+    assert "reasoning" not in server.requests[1]
+
+
+def test_pinned_provider_is_the_only_one_allowed(tmp_path: Path) -> None:
+    server = _Server(_body())
+    client, _ = _client(tmp_path, server)
+    pinned = _MODEL.model_copy(update={"provider": "DeepInfra"})
+    asyncio.run(client.complete(pinned, _MESSAGES, json_schema={"type": "object"}))
+    assert server.requests[0]["provider"] == {
+        "order": ["DeepInfra"],
+        "allow_fallbacks": False,
+        "require_parameters": True,
+    }

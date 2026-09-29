@@ -50,16 +50,19 @@ async def paid_post(
         the retries run out.
     """
     with ledger.reserve(estimate_usd) as charge:
-        started = time.perf_counter()
         try:
             async for attempt in AsyncRetrying(
-                stop=stop_after_attempt(4),
-                wait=wait_exponential(multiplier=1, max=20),
+                ## Shared provider pools rate-limit for tens of seconds; wait them out.
+                stop=stop_after_attempt(6),
+                wait=wait_exponential(multiplier=2, max=60),
                 retry=retry_if_exception(_is_transient),
                 reraise=True,
             ):
                 with attempt:
+                    ## Latency is the answering attempt alone, not time spent waiting out retries.
+                    started = time.perf_counter()
                     response = await http.post(url, json=payload)
+                    latency = time.perf_counter() - started
                     response.raise_for_status()
         except httpx.HTTPStatusError as error:
             raise ProviderError(
@@ -67,7 +70,6 @@ async def paid_post(
             ) from error
         except httpx.TransportError as error:
             raise ProviderError(f"{url} unreachable: {error!r}") from error
-        latency = time.perf_counter() - started
         body = response.json()
         charge(cost_of(body))
     return CachedResponse(body=body, latency_s=latency)
