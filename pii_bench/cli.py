@@ -63,14 +63,11 @@ def run(
     out: Annotated[
         Path | None, typer.Option(help="Add to this run folder instead of starting a new one")
     ] = None,
-    replay: Annotated[
-        bool, typer.Option(help="Serve cached responses at their recorded latency")
-    ] = False,
 ) -> None:
     """Run lanes on a dataset split; stops before any call that would pass the budget cap."""
     settings = get_settings()
     ledger = Ledger(settings.cache_dir / "ledger.json", settings.budget_cap_usd)
-    deps = _deps(settings, ledger, ResponseCache(settings.cache_dir / "responses", replay=replay))
+    deps = _deps(settings, ledger, ResponseCache(settings.cache_dir / "responses"))
     built = [build_lane(lane_id.strip(), deps) for lane_id in lanes.split(",")]
     docs = select_docs(load_docs(settings.data_dir, dataset, split, settings.seed), tier)
     run_dir = out or new_run_dir(settings.runs_dir)

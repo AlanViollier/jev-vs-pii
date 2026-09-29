@@ -12,12 +12,19 @@ from pii_bench.exceptions import ConfigError
 
 def test_settings_load_from_yaml(tmp_path: Path) -> None:
     config = tmp_path / "config.yaml"
-    config.write_text("project: pii_bench\nconcurrency: 3\n")
+    config.write_text("concurrency: 3\n")
     assert get_settings.__wrapped__(config).concurrency == 3
 
 
 def test_invalid_settings_raise_config_error(tmp_path: Path) -> None:
     config = tmp_path / "config.yaml"
     config.write_text("concurrency: lots\n")
+    with pytest.raises(ConfigError):
+        get_settings.__wrapped__(config)
+
+
+def test_misspelt_key_fails_at_startup(tmp_path: Path) -> None:
+    config = tmp_path / "config.yaml"
+    config.write_text("budget_cap: 5\n")
     with pytest.raises(ConfigError):
         get_settings.__wrapped__(config)

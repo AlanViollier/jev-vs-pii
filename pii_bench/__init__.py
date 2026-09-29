@@ -1,3 +1,3 @@
-"""pii_bench — Head-to-head benchmark of PII span detection in English text: rules, NER, a decision model and LLMs, measured on accuracy, calibration, cost and latency."""
+"""Head-to-head benchmark of PII detection: Jev against rules, local PII models and LLMs, on accuracy, calibration, cost and latency."""
 
 __version__ = "0.1.0"

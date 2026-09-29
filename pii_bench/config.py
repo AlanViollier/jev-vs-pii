@@ -34,7 +34,8 @@ class AppSettings(BaseSettings):
     `models` maps the short key used in lane ids (`llm_sayback:qwen3-30b`) to a model.
     """
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    ## A misspelt key in config.yaml or .env fails at startup instead of being ignored.
+    model_config = SettingsConfigDict(env_file=".env", extra="forbid")
 
     openrouter_api_key: SecretStr = SecretStr("")
     jev_model: str = "typesafe/jev-1.13"

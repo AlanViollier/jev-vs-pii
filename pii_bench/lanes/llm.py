@@ -45,11 +45,11 @@ class LlmLane:
             provider=result.provider,
         )
         if result.truncated:
-            return base.model_copy(update={"failed": True, "failure": "truncated"})
+            return base.model_copy(update={"failure": "truncated"})
         try:
             spans, dropped = self._format.parse(doc.text, result.text)
         except ValidationError:
-            return base.model_copy(update={"failed": True, "failure": "unparseable"})
+            return base.model_copy(update={"failure": "unparseable"})
         except AlignmentError:
-            return base.model_copy(update={"failed": True, "failure": "misaligned"})
+            return base.model_copy(update={"failure": "misaligned"})
         return base.model_copy(update={"spans": tuple(spans), "dropped": dropped})

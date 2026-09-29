@@ -127,9 +127,9 @@ class LaneInfo(_Frozen):
 class Prediction(_Frozen):
     """One lane's output on one doc. `word_scores` aligns with `split_words(doc.text)` when present.
 
-    `failed` marks an answer the lane couldn't use at all (it scores as finding nothing) and
-    `failure` says why; `dropped` counts items in a usable answer that couldn't be placed in
-    the text. Generative lanes keep their raw `answer` and the `provider` that served it.
+    `failure` says why an answer was unusable (it then scores as finding nothing); `dropped`
+    counts items in a usable answer that couldn't be placed in the text. Generative lanes
+    keep their raw `answer` and the `provider` that served it.
     """
 
     doc_id: str
@@ -137,11 +137,15 @@ class Prediction(_Frozen):
     spans: tuple[Span, ...]
     word_scores: tuple[WordScore, ...] | None = None
     usage: Usage = Usage()
-    failed: bool = False
     failure: Failure | None = None
     dropped: int = 0
     answer: str | None = None
     provider: str | None = None
+
+    @property
+    def failed(self) -> bool:
+        """The lane got no usable answer for this doc."""
+        return self.failure is not None
 
 
 class LaneRun(_Frozen):

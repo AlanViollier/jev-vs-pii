@@ -9,16 +9,15 @@ description = "Head-to-head benchmark of PII span detection in English text: rul
 requires-python = ">=3.12"
 
 dependencies = [
-    "pyyaml>=6.0",            # config.yaml parsing (drop if you go full pydantic-settings TOML/env)
-    "pydantic>=2.7",          # schema-at-boundary; drop only if the project genuinely has no data model
-    "pydantic-settings>=2.2", # typed config + .env loading; replaces hand-rolled get_config()
-    "rich>=13",               # human-facing terminal + traceback
-    "structlog>=24.1",        # structured logging — default for any pipeline
-    "tenacity>=8.2",          # retry/backoff for transient I/O — drop only if the project has no flaky calls
-    "typer>=0.27.2",
+    "pyyaml>=6.0",             # config.yaml
+    "pydantic>=2.7",           # every record in and out
+    "pydantic-settings>=2.2",  # config.yaml + .env as one typed settings object
+    "rich>=13",                # progress bars
+    "tenacity>=8.2",           # retries on provider blips
+    "typer>=0.27.2",           # CLI
     "huggingface-hub>=1.5",    # dataset downloads at pinned revisions (transformers needs <2)
-    "httpx>=0.28",             # TAB download + Decisions API
-    "pyarrow>=17",
+    "httpx>=0.28",             # OpenRouter calls, TAB download
+    "pyarrow>=17",             # Nemotron-PII parquet
 ]
 
 [project.scripts]

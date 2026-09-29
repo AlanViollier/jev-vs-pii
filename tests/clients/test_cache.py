@@ -35,12 +35,10 @@ def test_different_request_misses(tmp_path: Path) -> None:
     assert call.calls == 2
 
 
-def test_replay_serves_hits_from_a_new_cache_object(tmp_path: Path) -> None:
+def test_hits_survive_a_new_cache_object(tmp_path: Path) -> None:
     call = _Counter()
     asyncio.run(ResponseCache(tmp_path).get_or_call({"state": "x"}, call))
-    response, hit = asyncio.run(
-        ResponseCache(tmp_path, replay=True).get_or_call({"state": "x"}, call)
-    )
+    response, hit = asyncio.run(ResponseCache(tmp_path).get_or_call({"state": "x"}, call))
     assert hit
     assert response.latency_s == 0.01
     assert call.calls == 1

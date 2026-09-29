@@ -1,8 +1,7 @@
-"""Disk cache of every model response, keyed by the exact request. Hits are free and replayable."""
+"""Disk cache of every model response, keyed by the exact request. Hits are free."""
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 from collections.abc import Awaitable, Callable, Mapping
@@ -20,14 +19,10 @@ class CachedResponse(BaseModel):
 
 
 class ResponseCache:
-    """Request-keyed response store, one readable JSON file per request.
+    """Request-keyed response store, one readable JSON file per request."""
 
-    In replay mode a hit waits its recorded latency, so a replayed run looks like the real one.
-    """
-
-    def __init__(self, directory: Path, replay: bool = False) -> None:
+    def __init__(self, directory: Path) -> None:
         self._directory = directory
-        self._replay = replay
 
     async def get_or_call(
         self,
@@ -51,8 +46,6 @@ class ResponseCache:
         path = self._path_for(request)
         if path.exists():
             cached = CachedResponse.model_validate_json(path.read_text())
-            if self._replay:
-                await asyncio.sleep(cached.latency_s)
             return cached, True
         response = await call()
         path.parent.mkdir(parents=True, exist_ok=True)

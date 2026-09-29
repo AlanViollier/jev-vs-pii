@@ -1,10 +1,4 @@
-# pii_bench runtime configuration
-
-project: pii_bench
-version: 0.1.0
-
-logging:
-  level: INFO
+## Benchmark settings. Secrets live in .env; every key here is validated at startup.
 
 ## Hard stop for paid API spend across every run (the ledger lives in .cache/).
 budget_cap_usd: 6.00

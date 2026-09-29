@@ -27,7 +27,7 @@ _COARSE: dict[str, Coarse] = {
 
 
 class PrivacyFilterLane:
-    """Lane `privacy_filter`: its own argmax spans, plus P(not O) per word for decoders and calibration."""
+    """Lane `privacy_filter`: spans from its own decoder, plus P(not O) per word for decoders and calibration."""
 
     def __init__(self) -> None:
         ## Loaded here, not at import: torch and the weights come with the optional NER extra.

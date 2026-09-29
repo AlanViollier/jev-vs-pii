@@ -32,7 +32,7 @@ async def run_lane(
     concurrency:
         Max simultaneous `predict` calls.
     on_prediction:
-        Called after each doc, e.g. by the live dashboard.
+        Called after each doc, e.g. to advance a progress bar.
 
     Returns
     -------

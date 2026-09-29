@@ -123,9 +123,12 @@ FREE_LANES := mask_all,regex,presidio,privacy_filter,gliner_pii
 JEV_LANES := jev_words,jev_typed,jev_bio
 MODELS := qwen3-30b qwen3-235b gpt4.1-nano llama3-8b deepseek-v4-flash deepseek-v4-flash-think haiku4.5
 LLM_LANES := $(subst $(space),$(comma),$(foreach model,$(MODELS),llm_sayback:$(model)))
-## The answer-format study: one model, every format.
+## The answer-format study, one model in every format: dev pilot only. Offsets and tagged
+## rewrites loop to the output cap often enough that full test sets would take hours for a
+## gap the pilot already shows.
 FORMAT_LANES := llm_offsets:qwen3-30b,llm_tagged:qwen3-30b
-ALL_LANES := $(FREE_LANES),$(JEV_LANES),$(LLM_LANES),$(FORMAT_LANES)
+TEST_LANES := $(FREE_LANES),$(JEV_LANES),$(LLM_LANES)
+PILOT_LANES := $(TEST_LANES),$(FORMAT_LANES)
 
 bench-free:
 	for dataset in $(DATASETS); do \
@@ -135,14 +138,14 @@ bench-free:
 ## Every lane on 20 dev docs per dataset: the pilot, and the data every decoder is tuned on.
 bench-tune:
 	status=0; for dataset in $(DATASETS); do \
-	  uv run pii-bench run --lanes $(ALL_LANES) --dataset $$dataset --split dev --tier pilot --out $(DEV) || status=1; \
+	  uv run pii-bench run --lanes $(PILOT_LANES) --dataset $$dataset --split dev --tier pilot --out $(DEV) || status=1; \
 	done; exit $$status
 	uv run pii-bench tune $(DEV)
 	uv run pii-bench score $(DEV)
 
 bench: bench-tune
 	status=0; for dataset in $(DATASETS); do \
-	  uv run pii-bench run --lanes $(ALL_LANES) --dataset $$dataset --tier full --out $(RUN) || status=1; \
+	  uv run pii-bench run --lanes $(TEST_LANES) --dataset $$dataset --tier full --out $(RUN) || status=1; \
 	done; exit $$status
 	uv run pii-bench score $(RUN)
 	uv run pii-bench report $(RUN)
