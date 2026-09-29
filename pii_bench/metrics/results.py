@@ -21,6 +21,7 @@ def score_lane_run(
     docs: Sequence[Doc],
     decoder: DecodeParams | None = None,
     seed: int = 0,
+    headline: bool = True,
 ) -> list[ResultRow]:
     """Score one lane run in every match mode.
 
@@ -34,6 +35,8 @@ def score_lane_run(
         Re-decode the run's word scores with these settings instead of using its spans.
     seed:
         Bootstrap seed.
+    headline:
+        Whether these rows are the lane's headline rows.
 
     Returns
     -------
@@ -44,7 +47,10 @@ def score_lane_run(
     scored = [by_id[prediction.doc_id] for prediction in lane_run.predictions]
     spans = [_spans(doc, p, decoder) for doc, p in zip(scored, lane_run.predictions, strict=True)]
     probs, labels = _word_probs(scored, lane_run.predictions)
-    return [_row(lane_run, scored, spans, mode, decoder, seed, probs, labels) for mode in MODES]
+    return [
+        _row(lane_run, scored, spans, mode, decoder, headline, seed, probs, labels)
+        for mode in MODES
+    ]
 
 
 def human_lane_run(docs: Sequence[Doc]) -> LaneRun | None:
@@ -106,6 +112,7 @@ def _row(
     spans: Sequence[Sequence[Span]],
     mode: MatchMode,
     decoder: DecodeParams | None,
+    headline: bool,
     seed: int,
     probs: list[float],
     labels: list[bool],
@@ -114,6 +121,7 @@ def _row(
     return ResultRow(
         lane=lane_run.lane,
         decoder=describe(decoder) if decoder else None,
+        headline=headline,
         dataset=lane_run.dataset,
         split=lane_run.split,
         mode=mode,

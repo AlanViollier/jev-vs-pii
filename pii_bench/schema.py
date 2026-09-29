@@ -167,12 +167,14 @@ class CostSummary(_Frozen):
 class ResultRow(_Frozen):
     """One row of the results table: a lane on a dataset split, scored.
 
-    `decoder` names how per-word scores became spans (`None` for lanes that output spans);
-    `failed` and `dropped` sum the lane's unusable answers and unplaceable items.
+    `decoder` names how per-word scores became spans (`None`: the lane's own spans);
+    `headline` marks the one row per lane the results lead with (for per-word lanes, the
+    decoder that won on dev); `failed` and `dropped` sum unusable answers and unplaceable items.
     """
 
     lane: LaneInfo
     decoder: str | None = None
+    headline: bool = True
     dataset: Dataset
     split: Split
     mode: MatchMode

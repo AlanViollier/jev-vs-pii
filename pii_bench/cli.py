@@ -28,6 +28,7 @@ from pii_bench.run import (
     load_lane_runs,
     load_tuned,
     new_run_dir,
+    ranked,
     run_lane,
     save_lane_run,
     save_tuned,
@@ -90,13 +91,12 @@ def tune(run_dir: Annotated[Path, typer.Argument(help="A run on the dev split")]
     for lane_run, docs in _with_docs(load_lane_runs(run_dir), settings):
         if lane_run.split != "dev" or not lane_run.predictions[0].word_scores:
             continue
-        best = tune_lane_run(lane_run, docs)
-        tuned.setdefault(lane_run.lane.id, {})[lane_run.dataset] = {
-            kind: params for kind, (params, _) in best.items()
-        }
-        for params, f2 in best.values():
+        decoders = ranked(tune_lane_run(lane_run, docs))
+        tuned.setdefault(lane_run.lane.id, {})[lane_run.dataset] = decoders
+        for decoder in decoders:
             _console.print(
-                f"{lane_run.lane.id:<14} {lane_run.dataset:<10} dev F2 {f2:.3f}  {describe(params)}"
+                f"{lane_run.lane.id:<14} {lane_run.dataset:<10} "
+                f"dev F2 {decoder.dev_f2:.3f}  {describe(decoder.params)}"
             )
     save_tuned(path, tuned)
     _console.print(f"→ {path}")
@@ -112,9 +112,12 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
     ran: dict[tuple[Dataset, Split], set[str]] = defaultdict(set)
     split_docs: dict[tuple[Dataset, Split], list[Doc]] = {}
     for lane_run, docs in _with_docs(load_lane_runs(run_dir), settings):
-        rows += score_lane_run(lane_run, docs, seed=settings.seed)
-        for decoder in tuned.get(lane_run.lane.id, {}).get(lane_run.dataset, {}).values():
-            rows += score_lane_run(lane_run, docs, decoder, seed=settings.seed)
+        decoders = tuned.get(lane_run.lane.id, {}).get(lane_run.dataset, [])
+        rows += score_lane_run(lane_run, docs, seed=settings.seed, headline=not decoders)
+        for rank, decoder in enumerate(decoders):
+            rows += score_lane_run(
+                lane_run, docs, decoder.params, seed=settings.seed, headline=rank == 0
+            )
         key = (lane_run.dataset, lane_run.split)
         ran[key] |= {prediction.doc_id for prediction in lane_run.predictions}
         split_docs[key] = docs
@@ -203,24 +206,30 @@ def _with_docs(
 
 
 def _markdown(rows: Sequence[ResultRow]) -> str:
-    """Per dataset split: the word-level headline, recall by type, then exact span match."""
+    """Per dataset split: headline, recall by type, exact match, then every decoder of per-word lanes."""
     grouped: dict[tuple[str, str], list[ResultRow]] = defaultdict(list)
     for row in rows:
         grouped[(row.dataset, row.split)].append(row)
     sections = []
     for (dataset, split), group in sorted(grouped.items()):
-        word = [row for row in group if row.mode == "word"]
-        exact = [row for row in group if row.mode == "exact"]
+        headline = [row for row in group if row.headline]
+        word = [row for row in headline if row.mode == "word"]
         sizes = ", ".join(sorted({f"{row.n_docs} docs" for row in word}))
         sections += [
             f"## {dataset} · {split} ({sizes})",
-            "### Word level (headline)",
+            "### Word level (headline; per-word lanes use the decoder that won on dev)",
             results_table(word),
             "### Recall by gold type (word level)",
             recall_by_type_table(word),
             "### Exact span match",
-            results_table(exact),
+            results_table([row for row in headline if row.mode == "exact"]),
         ]
+        decoded = [row for row in group if row.mode == "word" and row.lane.family == "jev"]
+        if decoded:
+            sections += [
+                "### Every decoder on the Jev word scores (word level)",
+                results_table(decoded),
+            ]
     return "\n\n".join(sections) + "\n"
 
 

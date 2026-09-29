@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter
 
 from pii_bench.decode import Closing, DecodeParams, Hysteresis, Threshold, Viterbi, decode
 from pii_bench.metrics.spans import doc_counts, scores_from_counts
@@ -70,9 +70,22 @@ def tune_lane_run(lane_run: LaneRun, docs: Sequence[Doc]) -> dict[str, tuple[Dec
     return best
 
 
-## lane id -> dataset -> decoder kind -> tuned settings.
-Tuned = dict[str, dict[Dataset, dict[str, DecodeParams]]]
+class TunedDecoder(BaseModel):
+    """A decoder's tuned settings and the dev F2 that picked them."""
+
+    params: DecodeParams
+    dev_f2: float
+
+
+## lane id -> dataset -> the best settings of each decoder kind, best dev F2 first.
+Tuned = dict[str, dict[Dataset, list[TunedDecoder]]]
 _TUNED = TypeAdapter(Tuned)
+
+
+def ranked(best: dict[str, tuple[DecodeParams, float]]) -> list[TunedDecoder]:
+    """Tuning results as stored: best dev F2 first, so the headline decoder is chosen on dev."""
+    decoders = [TunedDecoder(params=params, dev_f2=f2) for params, f2 in best.values()]
+    return sorted(decoders, key=lambda decoder: decoder.dev_f2, reverse=True)
 
 
 def load_tuned(path: Path) -> Tuned:
