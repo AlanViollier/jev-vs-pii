@@ -1,4 +1,4 @@
-.PHONY: help install install-dev hooks format lint lint-slop typecheck docstrings test check format-check ci audit clean
+.PHONY: help install install-dev hooks format lint lint-slop typecheck docstrings test check format-check ci audit clean bench-free bench-tune bench
 
 help:
 	@echo "Targets:"
@@ -15,6 +15,9 @@ help:
 	@echo "  ci           - Mirror of GitHub CI: pre-commit run --all-files + pip-audit"
 	@echo "  audit        - Scan dependencies for known CVEs (network; not in 'check')"
 	@echo "  clean        - Remove caches and build artefacts"
+	@echo "  bench-free   - Free lanes (floor, regex, Presidio) on both test sets"
+	@echo "  bench-tune   - Jev word scores on 20 dev docs per dataset, then decoder tuning"
+	@echo "  bench        - The full benchmark: free lanes, tuning, every paid lane, scores, chart"
 
 install:
 	uv sync
@@ -107,3 +110,26 @@ clean:
 	@rm -rf .mypy_cache .ruff_cache .pytest_cache dist build *.egg-info
 	@find . -not -path './.venv/*' -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 	@find . -not -path './.venv/*' -type f -name '*.py[co]' -delete 2>/dev/null || true
+
+## The benchmark. Paid lanes stop before any call that would pass the budget cap in
+## config (every response is cached, so a rerun pays nothing twice).
+RUN ?= runs/test
+DEV ?= runs/dev
+FREE_LANES := mask_all,regex,presidio
+JEV_LANES := jev_words,jev_typed
+LLM_LANES := llm_sayback:qwen3-30b,llm_sayback:qwen3-235b,llm_sayback:gpt4.1-nano
+
+bench-free:
+	uv run pii-bench run --lanes $(FREE_LANES) --dataset ai4privacy --tier full --out $(RUN)
+	uv run pii-bench run --lanes $(FREE_LANES) --dataset tab --tier full --out $(RUN)
+
+bench-tune:
+	uv run pii-bench run --lanes $(JEV_LANES) --dataset ai4privacy --split dev --tier pilot --out $(DEV)
+	uv run pii-bench run --lanes $(JEV_LANES) --dataset tab --split dev --tier pilot --out $(DEV)
+	uv run pii-bench tune $(DEV)
+
+bench: bench-free bench-tune
+	uv run pii-bench run --lanes $(JEV_LANES),$(LLM_LANES),llm_tagged:qwen3-30b --dataset ai4privacy --tier full --out $(RUN)
+	uv run pii-bench run --lanes $(JEV_LANES),$(LLM_LANES) --dataset tab --tier full --out $(RUN)
+	uv run pii-bench score $(RUN)
+	uv run pii-bench report $(RUN)

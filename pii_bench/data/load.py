@@ -8,8 +8,8 @@ from pii_bench.data.ai4privacy import load_ai4privacy
 from pii_bench.data.tab import load_tab
 from pii_bench.schema import Dataset, Doc, Split
 
-## ai4privacy is sampled; TAB is used whole (127 docs per split).
-AI4PRIVACY_SIZES: dict[Split, int] = {"dev": 500, "test": 1000}
+## ai4privacy is sampled (500 keeps a F2 CI near ±0.02 inside the €2 budget); TAB is used whole.
+AI4PRIVACY_SIZES: dict[Split, int] = {"dev": 500, "test": 500}
 
 
 def load_docs(data_dir: Path, dataset: Dataset, split: Split, seed: int) -> list[Doc]:

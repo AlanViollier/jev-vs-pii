@@ -40,7 +40,7 @@ def load_ai4privacy(data_dir: Path, split: Split, n: int, seed: int) -> list[Doc
     split:
         `dev` samples the train file, `test` the validation file.
     n:
-        Sample size (1,000 for test, 500 for dev).
+        Sample size (500 for each split).
     seed:
         Sampling seed; same seed, same docs.
 

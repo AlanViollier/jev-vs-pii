@@ -10,11 +10,11 @@ from pii_bench.schema import ResultRow
 
 _PAPER, _INK, _ACCENT, _MUTED, _HAIRLINE = "#FBF8F3", "#1C1A17", "#C2410C", "#97907F", "#E8E2D6"
 _FONT = "IBM Plex Mono, ui-monospace, monospace"
-_PANEL_W, _PANEL_H = 470, 400
-_LEFT, _RIGHT, _TOP, _BOTTOM = 56, 118, 44, 46
+_PANEL_W, _PANEL_H = 520, 400
+_LEFT, _RIGHT, _TOP, _BOTTOM = 44, 150, 50, 46
 ## Cost axis in $/1k docs, log scale; free lanes sit in their own column left of it.
 _X_MIN, _X_MAX = 0.01, 10.0
-_FREE_W = 34
+_FREE_W = 56
 _Y_MIN, _Y_MAX = 0.3, 1.0
 _LABEL_GAP = 11
 
@@ -49,7 +49,7 @@ def _panel(title: str, rows: Sequence[ResultRow], x0: int) -> str:
 
     def x_of(cost: float) -> float:
         if cost <= 0:
-            return x0 + _LEFT + _FREE_W / 2
+            return x0 + _LEFT + 18
         share = (math.log10(min(max(cost, _X_MIN), _X_MAX)) - math.log10(_X_MIN)) / (
             math.log10(_X_MAX) - math.log10(_X_MIN)
         )
@@ -60,8 +60,8 @@ def _panel(title: str, rows: Sequence[ResultRow], x0: int) -> str:
         return plot_bottom - share * (plot_bottom - _TOP)
 
     parts = [
-        f'<rect x="{x0 + _LEFT}" y="{_TOP - 26}" width="18" height="2" fill="{_ACCENT}"/>',
-        f'<text x="{x0 + _LEFT}" y="{_TOP - 10}" font-size="12" font-weight="600">{escape(title)}</text>',
+        f'<rect x="{x0 + _LEFT}" y="{_TOP - 34}" width="18" height="2" fill="{_ACCENT}"/>',
+        f'<text x="{x0 + _LEFT}" y="{_TOP - 16}" font-size="12" font-weight="600">{escape(title)}</text>',
     ]
     for f2 in (0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0):
         y = y_of(f2)
@@ -71,9 +71,8 @@ def _panel(title: str, rows: Sequence[ResultRow], x0: int) -> str:
         x = x_of(cost)
         parts.append(_line(x, _TOP, x, plot_bottom, _HAIRLINE))
         parts.append(_text(x, plot_bottom + 14, f"${cost:g}", _MUTED, anchor="middle"))
-    parts.append(_text(x0 + _LEFT + _FREE_W / 2, plot_bottom + 14, "free", _MUTED, anchor="middle"))
+    parts.append(_text(x0 + _LEFT + 18, plot_bottom + 14, "free", _MUTED, anchor="middle"))
     parts.append(_text(plot_right, plot_bottom + 30, "$ per 1k docs (log) →", _MUTED, anchor="end"))
-    parts.append(_text(x0 + _LEFT - 6, _TOP - 10 + 16, "F2", _MUTED, anchor="end"))
 
     for row in rows:
         if row.lane.family in ("human", "baseline"):
