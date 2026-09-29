@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Self
@@ -11,8 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Dataset = Literal["ai4privacy", "tab"]
 Split = Literal["dev", "test"]
 Tier = Literal["smoke", "pilot", "full"]
-Family = Literal["rules", "ner", "jev", "llm", "cascade"]
-Residency = Literal["local", "eu_hosted", "us_gdpr_agreement"]
+Family = Literal["baseline", "rules", "ner", "jev", "llm"]
 MatchMode = Literal["word", "exact"]
 
 
@@ -92,24 +92,41 @@ class Usage(_Frozen):
     cost_usd: Decimal = Decimal(0)
     latency_s: float = 0.0
 
+    @classmethod
+    def combine(cls, usages: Sequence[Usage]) -> Usage:
+        """Total of calls made concurrently for one doc: counts and cost add, latency is the slowest."""
+        return cls(
+            calls=sum(u.calls for u in usages),
+            cache_hits=sum(u.cache_hits for u in usages),
+            input_tokens=sum(u.input_tokens for u in usages),
+            output_tokens=sum(u.output_tokens for u in usages),
+            cost_usd=sum((u.cost_usd for u in usages), Decimal(0)),
+            latency_s=max((u.latency_s for u in usages), default=0.0),
+        )
+
 
 class LaneInfo(_Frozen):
     """Identity of a lane, carried into every result row."""
 
     id: str
     family: Family
-    residency: Residency
     model: str | None = None
 
 
 class Prediction(_Frozen):
-    """One lane's output on one doc. `word_scores` aligns with `split_words(doc.text)` when present."""
+    """One lane's output on one doc. `word_scores` aligns with `split_words(doc.text)` when present.
+
+    `failed` marks an answer the lane couldn't use at all (it scores as finding nothing);
+    `dropped` counts items in a usable answer that couldn't be placed in the text.
+    """
 
     doc_id: str
     lane_id: str
     spans: tuple[Span, ...]
     word_scores: tuple[WordScore, ...] | None = None
     usage: Usage = Usage()
+    failed: bool = False
+    dropped: int = 0
 
 
 class LaneRun(_Frozen):

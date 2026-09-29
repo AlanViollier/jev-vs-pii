@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from pii_bench.schema import Dataset, Doc
-from pii_bench.taxonomy import DEFINITIONS, scope, to_coarse
+from pii_bench.taxonomy import DEFINITIONS, definition, scope, to_coarse
 
 
 @pytest.mark.parametrize(
@@ -44,3 +44,10 @@ def test_ai4privacy_scope_has_no_subject() -> None:
 
 def test_every_coarse_type_is_defined() -> None:
     assert set(DEFINITIONS) == {"PERSON", "LOCATION", "CONTACT", "ID", "DATETIME", "OTHER"}
+
+
+def test_definition_is_scope_then_every_type() -> None:
+    doc = Doc(id="d", dataset="tab", split="test", text="x", gold=(), subject="Ivo Brandt")
+    text = definition(doc)
+    assert text.startswith(scope(doc))
+    assert all(f"{label}: {meaning}" in text for label, meaning in DEFINITIONS.items())

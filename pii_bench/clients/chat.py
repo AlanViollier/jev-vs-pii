@@ -1,14 +1,24 @@
-"""Generative models through OpenRouter's chat endpoint (Haiku only, as the ceiling)."""
+"""Generative models through OpenRouter's chat endpoint, at temperature 0, optionally held to a JSON schema."""
 
 from __future__ import annotations
 
+import json
+from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel
+import httpx
+from pydantic import BaseModel, ValidationError
 
 from pii_bench.clients.budget import Ledger
 from pii_bench.clients.cache import ResponseCache
+from pii_bench.clients.http import paid_post
+from pii_bench.config import ModelSpec
+from pii_bench.exceptions import ProviderError
 from pii_bench.schema import Usage
+
+CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
+## Room for a tagged rewrite of the longest TAB judgment; also caps the budget hold.
+MAX_OUTPUT_TOKENS = 8192
 
 
 class Message(BaseModel):
@@ -19,21 +29,54 @@ class Message(BaseModel):
 
 
 class ChatResult(BaseModel):
-    """Generated text plus what the call cost."""
+    """Generated text, whether it hit the output cap, what it cost, and who served it."""
 
     text: str
+    truncated: bool
+    provider: str
     usage: Usage
+
+
+class _Usage(BaseModel):
+    prompt_tokens: int
+    completion_tokens: int
+    cost: float
+
+
+class _ChoiceMessage(BaseModel):
+    content: str | None
+
+
+class _Choice(BaseModel):
+    message: _ChoiceMessage
+    finish_reason: str | None
+
+
+class _Body(BaseModel):
+    provider: str
+    choices: list[_Choice]
+    usage: _Usage
 
 
 class ChatClient:
     """Async chat client; every call is budget-checked and cached."""
 
-    def __init__(self, api_key: str, ledger: Ledger, cache: ResponseCache) -> None:
-        raise NotImplementedError
+    def __init__(
+        self,
+        api_key: str,
+        ledger: Ledger,
+        cache: ResponseCache,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
+        self._ledger = ledger
+        self._cache = cache
+        self._http = httpx.AsyncClient(
+            headers={"Authorization": f"Bearer {api_key}"}, timeout=300, transport=transport
+        )
 
     async def complete(
         self,
-        model: str,
+        model: ModelSpec,
         messages: list[Message],
         json_schema: dict[str, Any] | None = None,
     ) -> ChatResult:
@@ -42,15 +85,64 @@ class ChatClient:
         Parameters
         ----------
         model:
-            OpenRouter model id.
+            Which model, with the prices that bound its budget hold.
         messages:
             The conversation.
         json_schema:
-            When set, the model must answer with JSON matching it.
+            When set, the answer must be JSON matching it, and only providers that
+            enforce schemas may serve the call.
 
         Returns
         -------
         ChatResult
             Raises `BudgetExceeded` or `ProviderError` like `DecisionsClient.ask`.
         """
-        raise NotImplementedError
+        payload: dict[str, Any] = {
+            "model": model.id,
+            "messages": [message.model_dump() for message in messages],
+            "temperature": 0,
+            "seed": 0,
+            "max_tokens": MAX_OUTPUT_TOKENS,
+        }
+        if json_schema is not None:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "answer", "strict": True, "schema": json_schema},
+            }
+            payload["provider"] = {"require_parameters": True}
+        ## A token is at least one byte, so bytes bound the input; the output cap bounds the rest.
+        estimate = (
+            len(json.dumps(payload).encode()) * model.input_usd_per_m
+            + MAX_OUTPUT_TOKENS * model.output_usd_per_m
+        ) / 1_000_000
+        response, hit = await self._cache.get_or_call(
+            {"url": CHAT_URL, **payload},
+            lambda: paid_post(self._http, CHAT_URL, payload, self._ledger, estimate, _cost),
+        )
+        body = _parse(response.body)
+        choice = body.choices[0]
+        return ChatResult(
+            text=choice.message.content or "",
+            truncated=choice.finish_reason == "length",
+            provider=body.provider,
+            usage=Usage(
+                calls=1,
+                cache_hits=int(hit),
+                input_tokens=body.usage.prompt_tokens,
+                output_tokens=body.usage.completion_tokens,
+                cost_usd=Decimal(str(body.usage.cost)),
+                latency_s=response.latency_s,
+            ),
+        )
+
+
+def _cost(body: dict[str, Any]) -> Decimal:
+    return Decimal(str(_parse(body).usage.cost))
+
+
+def _parse(body: dict[str, Any]) -> _Body:
+    """Validate a response body; anything unexpected is the provider's error, not ours."""
+    try:
+        return _Body.model_validate(body)
+    except ValidationError as error:
+        raise ProviderError(f"unexpected chat answer: {error}") from error

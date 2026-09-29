@@ -11,24 +11,25 @@ from pydantic import BaseModel, SecretStr, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from pii_bench.exceptions import ConfigError
-from pii_bench.schema import Residency
 
 
 class ModelSpec(BaseModel):
-    """A generative model a lane can be pointed at, and where it runs."""
+    """A generative model on OpenRouter and its list prices, which bound the budget hold per call."""
 
-    provider: str
-    model_id: str
-    residency: Residency
+    id: str
+    input_usd_per_m: Decimal
+    output_usd_per_m: Decimal
 
 
 class AppSettings(BaseSettings):
-    """Typed settings. Built by `get_settings()`; tests construct it directly."""
+    """Typed settings. Built by `get_settings()`; tests construct it directly.
+
+    `models` maps the short key used in lane ids (`llm_sayback:qwen3-30b`) to a model.
+    """
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     openrouter_api_key: SecretStr = SecretStr("")
-    ollama_host: str = "http://localhost:11434"
     jev_model: str = "typesafe/jev-1.13"
     budget_cap_usd: Decimal = Decimal("2.00")
     concurrency: int = 8

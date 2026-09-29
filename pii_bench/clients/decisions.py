@@ -3,21 +3,15 @@
 from __future__ import annotations
 
 import json
-import time
 from decimal import Decimal
 from typing import Any, Literal
 
 import httpx
 from pydantic import BaseModel, ValidationError
-from tenacity import (
-    AsyncRetrying,
-    retry_if_exception,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 from pii_bench.clients.budget import Ledger
-from pii_bench.clients.cache import CachedResponse, ResponseCache
+from pii_bench.clients.cache import ResponseCache
+from pii_bench.clients.http import paid_post
 from pii_bench.exceptions import ProviderError
 from pii_bench.schema import Usage
 
@@ -25,7 +19,6 @@ DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions"
 
 ## Jev 1.13 on OpenRouter, Sep 2026: $0.042 per M input tokens, output free.
 _INPUT_USD_PER_TOKEN = Decimal("0.042") / 1_000_000
-_TRANSIENT_STATUS = {408, 429, 500, 502, 503, 504}
 
 
 class Noul(BaseModel):
@@ -95,6 +88,11 @@ class DecisionsClient:
             headers={"Authorization": f"Bearer {api_key}"}, timeout=120, transport=transport
         )
 
+    @property
+    def model(self) -> str:
+        """The Jev model every call goes to."""
+        return self._model
+
     async def ask(self, state: str, questions: dict[str, Noul | Choice]) -> DecisionResult:
         """Ask every question about `state` in one call.
 
@@ -117,8 +115,11 @@ class DecisionsClient:
             "state": state,
             "questions": {key: question.model_dump() for key, question in questions.items()},
         }
+        ## A token is at least one byte, so the byte count bounds the input tokens.
+        estimate = len(json.dumps(payload).encode()) * _INPUT_USD_PER_TOKEN
         response, hit = await self._cache.get_or_call(
-            {"url": DECISIONS_URL, **payload}, lambda: self._post(payload)
+            {"url": DECISIONS_URL, **payload},
+            lambda: paid_post(self._http, DECISIONS_URL, payload, self._ledger, estimate, _cost),
         )
         body = _parse(response.body)
         return DecisionResult(
@@ -133,38 +134,9 @@ class DecisionsClient:
             ),
         )
 
-    async def _post(self, payload: dict[str, Any]) -> CachedResponse:
-        """One paid call: reserve a worst-case estimate, retry blips, charge the real cost."""
-        ## A token is at least one byte, so the byte count bounds the input tokens.
-        estimate = len(json.dumps(payload).encode()) * _INPUT_USD_PER_TOKEN
-        with self._ledger.reserve(estimate) as charge:
-            started = time.perf_counter()
-            try:
-                async for attempt in AsyncRetrying(
-                    stop=stop_after_attempt(4),
-                    wait=wait_exponential(multiplier=1, max=20),
-                    retry=retry_if_exception(_is_transient),
-                    reraise=True,
-                ):
-                    with attempt:
-                        response = await self._http.post(DECISIONS_URL, json=payload)
-                        response.raise_for_status()
-            except httpx.HTTPStatusError as error:
-                raise ProviderError(
-                    f"Decisions API {error.response.status_code}: {error.response.text[:500]}"
-                ) from error
-            except httpx.TransportError as error:
-                raise ProviderError(f"Decisions API unreachable: {error!r}") from error
-            latency = time.perf_counter() - started
-            body = response.json()
-            charge(Decimal(str(_parse(body).usage.cost)))
-        return CachedResponse(body=body, latency_s=latency)
 
-
-def _is_transient(error: BaseException) -> bool:
-    if isinstance(error, httpx.HTTPStatusError):
-        return error.response.status_code in _TRANSIENT_STATUS
-    return isinstance(error, httpx.TransportError)
+def _cost(body: dict[str, Any]) -> Decimal:
+    return Decimal(str(_parse(body).usage.cost))
 
 
 def _parse(body: dict[str, Any]) -> _Body:

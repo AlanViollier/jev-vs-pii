@@ -103,3 +103,20 @@ def scope(doc: Doc) -> str:
         "Leave everything that does not point to them, such as the court, laws, public bodies "
         "or the state being sued."
     )
+
+
+def definition(doc: Doc) -> str:
+    """The full PII definition a lane gives its model: scope, then one line per coarse type.
+
+    Parameters
+    ----------
+    doc:
+        The doc a lane is about to label.
+
+    Returns
+    -------
+    str
+        `scope(doc)` followed by `DEFINITIONS`, one `TYPE: meaning` line each.
+    """
+    types = "\n".join(f"{label}: {meaning}" for label, meaning in DEFINITIONS.items())
+    return f"{scope(doc)}\n\n{types}"
