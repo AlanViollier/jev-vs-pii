@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
 from collections.abc import Callable, Sequence
 
 from pii_bench.lanes import Lane
@@ -18,6 +20,9 @@ async def run_lane(
 ) -> list[Prediction]:
     """Predict every doc with at most `concurrency` in flight.
 
+    Lanes that make no remote call are timed here; remote lanes report their calls' own
+    latency, which a cache hit replays, so a rerun still describes the method.
+
     Parameters
     ----------
     lane:
@@ -32,7 +37,22 @@ async def run_lane(
     Returns
     -------
     list[Prediction]
-        In doc order. `BudgetExceeded` propagates; predictions made before it are
-        already in the cache, so a rerun after raising the cap pays nothing twice.
+        In doc order. `BudgetExceeded` and `ProviderError` propagate; predictions made
+        before them are already in the cache, so a rerun pays nothing twice.
     """
-    raise NotImplementedError
+    slots = asyncio.Semaphore(concurrency)
+
+    async def predict(doc: Doc) -> Prediction:
+        async with slots:
+            started = time.perf_counter()
+            prediction = await lane.predict(doc)
+            if prediction.usage.calls == 0:
+                usage = prediction.usage.model_copy(
+                    update={"latency_s": time.perf_counter() - started}
+                )
+                prediction = prediction.model_copy(update={"usage": usage})
+        if on_prediction is not None:
+            on_prediction(lane, doc, prediction)
+        return prediction
+
+    return list(await asyncio.gather(*(predict(doc) for doc in docs)))

@@ -87,6 +87,14 @@ def decode(words: Sequence[Word], scores: Sequence[WordScore], params: DecodePar
     return mask_to_spans(words, scores, mask)
 
 
+def describe(params: DecodeParams) -> str:
+    """Short name for a result row: `viterbi switch_cost=1.0`."""
+    knobs = " ".join(
+        f"{name}={value}" for name, value in params.model_dump(exclude={"kind"}).items()
+    )
+    return f"{params.kind} {knobs}"
+
+
 def threshold_mask(scores: Sequence[WordScore], params: Threshold) -> list[bool]:
     """Positive words under a single cutoff."""
     return [score.p_pii >= params.cutoff for score in scores]

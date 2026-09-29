@@ -50,3 +50,6 @@ TEMPLATE_CHANGELOG.md
 # Downloaded datasets and cached API responses
 /data/
 .cache/
+
+# Benchmark runs: predictions, scores, tuned decoders
+/runs/

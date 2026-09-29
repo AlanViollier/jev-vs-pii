@@ -5,3 +5,28 @@ version: 0.1.0
 
 logging:
   level: INFO
+
+## Generative models, all through OpenRouter. Key = the name used in lane ids
+## (llm_sayback:qwen3-30b). Prices are OpenRouter list prices per million tokens,
+## Sep 29 2026; they only bound the budget hold, the real cost comes from each response.
+models:
+  llama3-8b:
+    id: meta-llama/llama-3.1-8b-instruct
+    input_usd_per_m: 0.05
+    output_usd_per_m: 0.08
+  qwen3-30b:
+    id: qwen/qwen3-30b-a3b-instruct-2507
+    input_usd_per_m: 0.048
+    output_usd_per_m: 0.193
+  qwen3-235b:
+    id: qwen/qwen3-235b-a22b-2507
+    input_usd_per_m: 0.087
+    output_usd_per_m: 0.35
+  gpt4.1-nano:
+    id: openai/gpt-4.1-nano
+    input_usd_per_m: 0.10
+    output_usd_per_m: 0.40
+  haiku4.5:
+    id: anthropic/claude-haiku-4.5
+    input_usd_per_m: 1.00
+    output_usd_per_m: 5.00

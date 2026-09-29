@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pii-bench = "pii_bench.cli:app"
+pii-bench = "pii_bench.cli:main"
 
 [project.optional-dependencies]
 dev = [

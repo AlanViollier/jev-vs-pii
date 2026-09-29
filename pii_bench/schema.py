@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Dataset = Literal["ai4privacy", "tab"]
 Split = Literal["dev", "test"]
 Tier = Literal["smoke", "pilot", "full"]
-Family = Literal["baseline", "rules", "ner", "jev", "llm"]
+Family = Literal["baseline", "human", "rules", "ner", "jev", "llm"]
 MatchMode = Literal["word", "exact"]
 
 
@@ -138,6 +138,7 @@ class LaneRun(_Frozen):
     split: Split
     tier: Tier
     started_at: datetime
+    wall_clock_s: float
     predictions: tuple[Prediction, ...]
 
 
@@ -164,13 +165,28 @@ class CostSummary(_Frozen):
 
 
 class ResultRow(_Frozen):
-    """One row of the results table: a lane on a dataset split, scored."""
+    """One row of the results table: a lane on a dataset split, scored.
+
+    `decoder` names how per-word scores became spans (`None` for lanes that output spans);
+    `failed` and `dropped` sum the lane's unusable answers and unplaceable items.
+    """
 
     lane: LaneInfo
+    decoder: str | None = None
     dataset: Dataset
     split: Split
     mode: MatchMode
+    n_docs: int
     scores: SpanScores
     f2_ci: tuple[float, float]
     cost: CostSummary
     ece: float | None = None
+    brier: float | None = None
+    recall_by_type: dict[str, float]
+    failed: int
+    dropped: int
+
+    @property
+    def name(self) -> str:
+        """Lane id, with the decoder when it isn't the lane's own."""
+        return f"{self.lane.id} · {self.decoder}" if self.decoder else self.lane.id

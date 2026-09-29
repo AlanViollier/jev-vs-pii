@@ -24,4 +24,4 @@ def select_docs(docs: Sequence[Doc], tier: Tier) -> list[Doc]:
     list[Doc]
         A prefix: pilot reuses every smoke response from the cache, full reuses pilot's.
     """
-    raise NotImplementedError
+    return list(docs[: TIER_SIZES[tier]])
