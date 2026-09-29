@@ -21,7 +21,7 @@ async def run_lane(
     """Predict every doc with at most `concurrency` in flight.
 
     Lanes that make no remote call are timed here; remote lanes report their calls' own
-    latency, which a cache hit replays, so a rerun still describes the method.
+    latency, which a cache hit reports unchanged, so a rerun still describes the method.
 
     Parameters
     ----------
