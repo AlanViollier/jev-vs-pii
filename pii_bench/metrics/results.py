@@ -76,7 +76,13 @@ def score_lane_run(
         _row(lane_run, scored, spans, mode, decoder, headline, seed, probs, labels)
         for mode in MODES
     ]
-    if data_dir is None or lane_run.dataset != "tab" or not headline:
+    ## TAB's script scores against every annotator, the human row's own included, so it's skipped.
+    if (
+        data_dir is None
+        or lane_run.dataset != "tab"
+        or not headline
+        or lane_run.lane.family == "human"
+    ):
         return rows
     masked = [
         prediction.model_copy(update={"spans": tuple(doc_spans)})

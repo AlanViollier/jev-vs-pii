@@ -8,7 +8,7 @@ from collections.abc import Callable, Sequence
 from pii_bench.report.tables import cost_table, hits_table, paired_table, results_table
 from pii_bench.schema import Hits, ResultRow
 
-## Fine ai4privacy labels with fewer gold words than this in the split are left out.
+## Fine dataset labels with fewer gold words than this in the split are left out as noise.
 _MIN_LABEL_WORDS = 30
 
 
