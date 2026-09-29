@@ -17,15 +17,15 @@ class ModelSpec(BaseModel):
     """A generative model on OpenRouter and its list prices, which bound the budget hold per call.
 
     `reasoning` switches thinking on or off for models that can do both; None leaves the
-    provider's default. `provider` pins every call to one OpenRouter provider, no fallback,
-    for comparisons that must not change hardware or quantization between runs.
+    provider's default. `providers` restricts calls to these OpenRouter providers, for
+    comparisons whose runs must share the same serving stack.
     """
 
     id: str
     input_usd_per_m: Decimal
     output_usd_per_m: Decimal
     reasoning: bool | None = None
-    provider: str | None = None
+    providers: list[str] | None = None
 
 
 class AppSettings(BaseSettings):

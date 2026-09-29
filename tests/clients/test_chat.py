@@ -109,13 +109,12 @@ def test_reasoning_switch_is_sent_only_when_set(tmp_path: Path, reasoning: bool)
     assert "reasoning" not in server.requests[1]
 
 
-def test_pinned_provider_is_the_only_one_allowed(tmp_path: Path) -> None:
+def test_restricted_providers_are_the_only_ones_allowed(tmp_path: Path) -> None:
     server = _Server(_body())
     client, _ = _client(tmp_path, server)
-    pinned = _MODEL.model_copy(update={"provider": "DeepInfra"})
-    asyncio.run(client.complete(pinned, _MESSAGES, json_schema={"type": "object"}))
+    restricted = _MODEL.model_copy(update={"providers": ["DeepInfra", "Parasail"]})
+    asyncio.run(client.complete(restricted, _MESSAGES, json_schema={"type": "object"}))
     assert server.requests[0]["provider"] == {
-        "order": ["DeepInfra"],
-        "allow_fallbacks": False,
+        "only": ["DeepInfra", "Parasail"],
         "require_parameters": True,
     }

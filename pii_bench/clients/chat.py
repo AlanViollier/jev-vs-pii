@@ -120,12 +120,8 @@ class ChatClient:
                 "json_schema": {"name": "answer", "strict": True, "schema": json_schema},
             }
             payload["provider"] = {"require_parameters": True}
-        if model.provider is not None:
-            payload["provider"] = {
-                "order": [model.provider],
-                "allow_fallbacks": False,
-                **payload.get("provider", {}),
-            }
+        if model.providers is not None:
+            payload["provider"] = {"only": model.providers, **payload.get("provider", {})}
         ## A token is at least one byte, so bytes bound the input; the output cap bounds the rest.
         estimate = (
             len(json.dumps(payload).encode()) * model.input_usd_per_m

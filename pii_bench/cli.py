@@ -20,7 +20,7 @@ from pii_bench.clients import ChatClient, DecisionsClient, Ledger, ResponseCache
 from pii_bench.config import AppSettings, get_settings
 from pii_bench.data import fetch_ai4privacy, fetch_nemotron, fetch_tab, load_docs
 from pii_bench.decode import describe
-from pii_bench.exceptions import BudgetExceeded, PiiBenchError
+from pii_bench.exceptions import BudgetExceeded, PiiBenchError, ProviderError
 from pii_bench.lanes import Lane, LaneDeps, build_lane
 from pii_bench.metrics.results import human_lane_run, score_lane_run
 from pii_bench.report.markdown import results_markdown
@@ -76,11 +76,18 @@ def run(
     run_dir = out or new_run_dir(settings.runs_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     try:
-        asyncio.run(_run_lanes(built, docs, dataset, split, tier, run_dir, settings, ledger))
+        failures = asyncio.run(
+            _run_lanes(built, docs, dataset, split, tier, run_dir, settings, ledger)
+        )
     except BudgetExceeded as error:
         _console.print(f"[bold red]stopped:[/] {error}")
         raise typer.Exit(1) from error
     _console.print(f"→ {run_dir} · spent ${ledger.spent_usd:.4f} of ${settings.budget_cap_usd}")
+    if failures:
+        for lane_id, failure in failures:
+            _console.print(f"[bold red]not saved:[/] {lane_id}: {str(failure)[:300]}")
+        _console.print("Rerun the same command: finished calls come back from the cache.")
+        raise typer.Exit(1)
 
 
 @app.command()
@@ -177,22 +184,31 @@ async def _run_lanes(
     run_dir: Path,
     settings: AppSettings,
     ledger: Ledger,
-) -> None:
-    """One event loop for every lane, so the HTTP clients keep their connections."""
+) -> list[tuple[str, ProviderError]]:
+    """Run every lane in one event loop, so the HTTP clients keep their connections.
+
+    A lane whose provider keeps failing is skipped, not the whole run: the other lanes
+    finish and are saved, and the failed ones are returned for the caller to report.
+    """
     columns = (
         TextColumn("{task.description:<24}"),
         BarColumn(complete_style="#C2410C"),
         MofNCompleteColumn(),
         TimeElapsedColumn(),
     )
+    failures: list[tuple[str, ProviderError]] = []
     for lane in lanes:
         spent_before: Decimal = ledger.spent_usd
         started_at, started = datetime.now(), time.perf_counter()
-        with Progress(*columns, console=_console) as progress:
-            task = progress.add_task(lane.info.id, total=len(docs))
-            predictions = await run_lane(
-                lane, docs, settings.concurrency, lambda *_, task=task: progress.advance(task)
-            )
+        try:
+            with Progress(*columns, console=_console) as progress:
+                task = progress.add_task(lane.info.id, total=len(docs))
+                predictions = await run_lane(
+                    lane, docs, settings.concurrency, lambda *_, task=task: progress.advance(task)
+                )
+        except ProviderError as error:
+            failures.append((lane.info.id, error))
+            continue
         lane_run = LaneRun(
             run_id=run_dir.name,
             lane=lane.info,
@@ -209,6 +225,7 @@ async def _run_lanes(
             f"  {len(predictions)} docs · {failed} failed · "
             f"${ledger.spent_usd - spent_before:.4f} new spend"
         )
+    return failures
 
 
 def _with_docs(

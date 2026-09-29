@@ -112,7 +112,8 @@ clean:
 	@find . -not -path './.venv/*' -type f -name '*.py[co]' -delete 2>/dev/null || true
 
 ## The benchmark. Paid lanes stop before any call that would pass the budget cap in
-## config (every response is cached, so a rerun pays nothing twice).
+## config. A lane whose provider keeps failing is skipped and reported; every dataset still
+## runs, and rerunning the target retries only what's missing (responses are cached).
 RUN ?= runs/test
 DEV ?= runs/dev
 DATASETS := ai4privacy tab nemotron
@@ -133,15 +134,15 @@ bench-free:
 
 ## Every lane on 20 dev docs per dataset: the pilot, and the data every decoder is tuned on.
 bench-tune:
-	for dataset in $(DATASETS); do \
-	  uv run pii-bench run --lanes $(ALL_LANES) --dataset $$dataset --split dev --tier pilot --out $(DEV) || exit 1; \
-	done
+	status=0; for dataset in $(DATASETS); do \
+	  uv run pii-bench run --lanes $(ALL_LANES) --dataset $$dataset --split dev --tier pilot --out $(DEV) || status=1; \
+	done; exit $$status
 	uv run pii-bench tune $(DEV)
 	uv run pii-bench score $(DEV)
 
 bench: bench-tune
-	for dataset in $(DATASETS); do \
-	  uv run pii-bench run --lanes $(ALL_LANES) --dataset $$dataset --tier full --out $(RUN) || exit 1; \
-	done
+	status=0; for dataset in $(DATASETS); do \
+	  uv run pii-bench run --lanes $(ALL_LANES) --dataset $$dataset --tier full --out $(RUN) || status=1; \
+	done; exit $$status
 	uv run pii-bench score $(RUN)
 	uv run pii-bench report $(RUN)
