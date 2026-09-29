@@ -8,8 +8,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from pii_bench.schema import Span
-from pii_bench.words import covering_spans, split_words
+from jev_vs_pii.schema import Span
+from jev_vs_pii.words import covering_spans, split_words
 
 _texts = st.text(
     alphabet=st.one_of(

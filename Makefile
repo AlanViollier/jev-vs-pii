@@ -132,20 +132,20 @@ PILOT_LANES := $(TEST_LANES),$(PILOT_ONLY)
 
 bench-free:
 	for dataset in $(DATASETS); do \
-	  uv run pii-bench run --lanes $(FREE_LANES) --dataset $$dataset --tier full --out $(RUN) || exit 1; \
+	  uv run jev-vs-pii run --lanes $(FREE_LANES) --dataset $$dataset --tier full --out $(RUN) || exit 1; \
 	done
 
 ## Every lane on 20 dev docs per dataset: the pilot, and the data every decoder is tuned on.
 bench-tune:
 	status=0; for dataset in $(DATASETS); do \
-	  uv run pii-bench run --lanes $(PILOT_LANES) --dataset $$dataset --split dev --tier pilot --out $(DEV) || status=1; \
+	  uv run jev-vs-pii run --lanes $(PILOT_LANES) --dataset $$dataset --split dev --tier pilot --out $(DEV) || status=1; \
 	done; exit $$status
-	uv run pii-bench tune $(DEV)
-	uv run pii-bench score $(DEV)
+	uv run jev-vs-pii tune $(DEV)
+	uv run jev-vs-pii score $(DEV)
 
 bench: bench-tune
 	status=0; for dataset in $(DATASETS); do \
-	  uv run pii-bench run --lanes $(TEST_LANES) --dataset $$dataset --tier full --out $(RUN) || status=1; \
+	  uv run jev-vs-pii run --lanes $(TEST_LANES) --dataset $$dataset --tier full --out $(RUN) || status=1; \
 	done; exit $$status
-	uv run pii-bench score $(RUN)
-	uv run pii-bench report $(RUN)
+	uv run jev-vs-pii score $(RUN)
+	uv run jev-vs-pii report $(RUN)

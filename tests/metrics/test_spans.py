@@ -7,7 +7,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from nervaluate import Evaluator  # type: ignore[import-untyped]  # ships no type hints
 
-from pii_bench.metrics.spans import (
+from jev_vs_pii.metrics.spans import (
     DocCounts,
     cleared_hits,
     doc_counts,
@@ -16,7 +16,7 @@ from pii_bench.metrics.spans import (
     score_spans,
     scores_from_counts,
 )
-from pii_bench.schema import Doc, Span
+from jev_vs_pii.schema import Doc, Span
 
 _TEXT = "Send it to Marie Dupont at 12 rue des Lilas, Lyon today."
 

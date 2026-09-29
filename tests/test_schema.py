@@ -7,8 +7,8 @@ from decimal import Decimal
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from pii_bench.decode import DecodeParams, Hysteresis, Viterbi
-from pii_bench.schema import Doc, Span, Usage, Word, WordScore
+from jev_vs_pii.decode import DecodeParams, Hysteresis, Viterbi
+from jev_vs_pii.schema import Doc, Span, Usage, Word, WordScore
 
 
 @pytest.mark.parametrize("model", [Span, Word])

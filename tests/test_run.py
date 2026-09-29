@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from pii_bench.decode import Threshold
-from pii_bench.lanes.mask_all import MaskAllLane
-from pii_bench.lanes.regex import RegexLane
-from pii_bench.metrics.results import human_lane_run, score_lane_run
-from pii_bench.report.markdown import results_markdown
-from pii_bench.report.tables import pareto_frontier
-from pii_bench.run import (
+from jev_vs_pii.decode import Threshold
+from jev_vs_pii.lanes.mask_all import MaskAllLane
+from jev_vs_pii.lanes.regex import RegexLane
+from jev_vs_pii.metrics.results import human_lane_run, score_lane_run
+from jev_vs_pii.report.markdown import results_markdown
+from jev_vs_pii.report.tables import pareto_frontier
+from jev_vs_pii.run import (
     load_lane_runs,
     load_tuned,
     ranked,
@@ -24,8 +24,8 @@ from pii_bench.run import (
     select_docs,
     tune_lane_run,
 )
-from pii_bench.schema import Doc, LaneInfo, LaneRun, Prediction, Span, Split, WordScore
-from pii_bench.words import split_words
+from jev_vs_pii.schema import Doc, LaneInfo, LaneRun, Prediction, Span, Split, WordScore
+from jev_vs_pii.words import split_words
 
 _TEXT = "Mail ann@example.org or call Ann Lee today."
 

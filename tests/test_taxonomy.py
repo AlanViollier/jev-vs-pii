@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from pii_bench.schema import Dataset, Doc
-from pii_bench.taxonomy import DEFINITIONS, definition, guidelines, shape, to_coarse
+from jev_vs_pii.schema import Dataset, Doc
+from jev_vs_pii.taxonomy import DEFINITIONS, definition, guidelines, shape, to_coarse
 
 
 @pytest.mark.parametrize(

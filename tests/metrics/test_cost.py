@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pii_bench.metrics.cost import cost_summary
-from pii_bench.schema import Prediction, Usage
+from jev_vs_pii.metrics.cost import cost_summary
+from jev_vs_pii.schema import Prediction, Usage
 
 
 def _prediction(cost: str, calls: int, latency_s: float) -> Prediction:

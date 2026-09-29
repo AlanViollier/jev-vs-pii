@@ -1,6 +1,0 @@
-"""Every PII method under test, each one standalone."""
-
-from pii_bench.lanes.base import Lane
-from pii_bench.lanes.registry import LANE_IDS, LaneDeps, build_lane
-
-__all__ = ["LANE_IDS", "Lane", "LaneDeps", "build_lane"]

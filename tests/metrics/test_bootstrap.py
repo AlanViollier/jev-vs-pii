@@ -6,9 +6,9 @@ from collections.abc import Sequence
 
 import pytest
 
-from pii_bench.metrics.bootstrap import bootstrap_ci
-from pii_bench.metrics.spans import DocCounts, scores_from_counts
-from pii_bench.utils.stats import percentile
+from jev_vs_pii.metrics.bootstrap import bootstrap_ci
+from jev_vs_pii.metrics.spans import DocCounts, scores_from_counts
+from jev_vs_pii.utils.stats import percentile
 
 _COUNTS = [DocCounts(tp=i % 5, fp=i % 3, fn=(i * 7) % 4) for i in range(60)]
 

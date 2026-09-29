@@ -6,8 +6,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from pii_bench.align import Mention, find_mentions, parse_tagged
-from pii_bench.exceptions import AlignmentError
+from jev_vs_pii.align import Mention, find_mentions, parse_tagged
+from jev_vs_pii.exceptions import AlignmentError
 
 
 def _texts(source: str, spans: list[tuple[int, int]]) -> list[str]:

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from pii_bench.metrics.bootstrap import paired_f2_diff
-from pii_bench.metrics.curve import threshold_curve
-from pii_bench.metrics.errors import top_errors
-from pii_bench.metrics.spans import DocCounts
-from pii_bench.schema import Doc, Span
+from jev_vs_pii.metrics.bootstrap import paired_f2_diff
+from jev_vs_pii.metrics.curve import threshold_curve
+from jev_vs_pii.metrics.errors import top_errors
+from jev_vs_pii.metrics.spans import DocCounts
+from jev_vs_pii.schema import Doc, Span
 
 
 def test_a_lane_against_itself_differs_by_nothing() -> None:

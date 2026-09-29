@@ -6,9 +6,9 @@ import asyncio
 
 import pytest
 
-from pii_bench.lanes.mask_all import MaskAllLane
-from pii_bench.lanes.regex import RegexLane, find_patterns
-from pii_bench.schema import Doc
+from jev_vs_pii.lanes.mask_all import MaskAllLane
+from jev_vs_pii.lanes.regex import RegexLane, find_patterns
+from jev_vs_pii.schema import Doc
 
 
 def _found(text: str) -> list[tuple[str, str | None]]:

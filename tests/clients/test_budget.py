@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from pii_bench.clients.budget import Ledger
-from pii_bench.exceptions import BudgetExceeded
+from jev_vs_pii.clients.budget import Ledger
+from jev_vs_pii.exceptions import BudgetExceeded
 
 
 def test_charges_persist_across_ledgers(tmp_path: Path) -> None:

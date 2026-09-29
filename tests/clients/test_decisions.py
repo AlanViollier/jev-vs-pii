@@ -11,10 +11,10 @@ from typing import Any
 import httpx
 import pytest
 
-from pii_bench.clients.budget import Ledger
-from pii_bench.clients.cache import ResponseCache
-from pii_bench.clients.decisions import Choice, ChoiceAnswer, DecisionsClient, Noul, NoulAnswer
-from pii_bench.exceptions import BudgetExceeded, ProviderError
+from jev_vs_pii.clients.budget import Ledger
+from jev_vs_pii.clients.cache import ResponseCache
+from jev_vs_pii.clients.decisions import Choice, ChoiceAnswer, DecisionsClient, Noul, NoulAnswer
+from jev_vs_pii.exceptions import BudgetExceeded, ProviderError
 
 ## Hand-written in the shape the live API returned on Sep 24.
 _BODY = {

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from pii_bench.metrics.calibration import brier, ece, reliability_bins
+from jev_vs_pii.metrics.calibration import brier, ece, reliability_bins
 
 
 def test_brier_hand_computed() -> None:

@@ -6,12 +6,12 @@ import asyncio
 
 import pytest
 
-from pii_bench.schema import Doc
+from jev_vs_pii.schema import Doc
 
 pytest.importorskip("presidio_analyzer")
 pytest.importorskip("en_core_web_lg")
 
-from pii_bench.lanes.presidio import PresidioLane  # noqa: E402  # after the skips on purpose
+from jev_vs_pii.lanes.presidio import PresidioLane  # noqa: E402  # after the skips on purpose
 
 
 def test_presidio_finds_a_name_and_an_email_with_coarse_types() -> None:

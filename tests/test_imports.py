@@ -7,12 +7,12 @@ import pkgutil
 
 from typer.testing import CliRunner
 
-import pii_bench
-from pii_bench.cli import app
+import jev_vs_pii
+from jev_vs_pii.cli import app
 
 
 def test_every_module_imports() -> None:
-    for module in pkgutil.walk_packages(pii_bench.__path__, prefix="pii_bench."):
+    for module in pkgutil.walk_packages(jev_vs_pii.__path__, prefix="jev_vs_pii."):
         importlib.import_module(module.name)
 
 

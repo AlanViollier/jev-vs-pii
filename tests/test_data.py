@@ -10,10 +10,10 @@ import pyarrow as pa  # type: ignore[import-untyped]  # ships no type hints
 import pyarrow.parquet as pq  # type: ignore[import-untyped]
 import pytest
 
-from pii_bench.data import fetch as fetch_module
-from pii_bench.data import load_ai4privacy, load_nemotron, load_tab
-from pii_bench.data.fetch import AI4PRIVACY_FILES, NEMOTRON_FILES, TAB_FILES, fetch_tab
-from pii_bench.schema import Split
+from jev_vs_pii.data import fetch as fetch_module
+from jev_vs_pii.data import load_ai4privacy, load_nemotron, load_tab
+from jev_vs_pii.data.fetch import AI4PRIVACY_FILES, NEMOTRON_FILES, TAB_FILES, fetch_tab
+from jev_vs_pii.schema import Split
 
 
 def _ai4privacy_row(doc_id: str, text: str, masks: list[tuple[str, str]]) -> dict[str, object]:

@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from pii_bench.config import get_settings
-from pii_bench.exceptions import ConfigError
+from jev_vs_pii.config import get_settings
+from jev_vs_pii.exceptions import ConfigError
 
 
 def test_settings_load_from_yaml(tmp_path: Path) -> None:

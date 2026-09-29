@@ -11,11 +11,11 @@ from typing import Any
 import httpx
 import pytest
 
-from pii_bench.clients.budget import Ledger
-from pii_bench.clients.cache import ResponseCache
-from pii_bench.clients.chat import ChatClient, Message
-from pii_bench.config import ModelSpec
-from pii_bench.exceptions import BudgetExceeded, ProviderError
+from jev_vs_pii.clients.budget import Ledger
+from jev_vs_pii.clients.cache import ResponseCache
+from jev_vs_pii.clients.chat import ChatClient, Message
+from jev_vs_pii.config import ModelSpec
+from jev_vs_pii.exceptions import BudgetExceeded, ProviderError
 
 _MODEL = ModelSpec(
     id="vendor/small-model", input_usd_per_m=Decimal("0.05"), output_usd_per_m=Decimal("0.2")

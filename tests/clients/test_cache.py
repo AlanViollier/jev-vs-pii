@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from pii_bench.clients.cache import CachedResponse, ResponseCache
+from jev_vs_pii.clients.cache import CachedResponse, ResponseCache
 
 
 class _Counter:

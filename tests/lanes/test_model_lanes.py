@@ -13,15 +13,15 @@ from typing import Any
 import httpx
 import pytest
 
-from pii_bench.clients import ChatClient, DecisionsClient, Ledger, ResponseCache
-from pii_bench.config import AppSettings, ModelSpec
-from pii_bench.exceptions import ConfigError
-from pii_bench.lanes import jev
-from pii_bench.lanes.jev_designs import BIO, TYPED, WORDS, in_context
-from pii_bench.lanes.registry import LaneDeps, build_lane
-from pii_bench.schema import Doc
-from pii_bench.taxonomy import DEFINITIONS, definition
-from pii_bench.words import split_words
+from jev_vs_pii.clients import ChatClient, DecisionsClient, Ledger, ResponseCache
+from jev_vs_pii.config import AppSettings, ModelSpec
+from jev_vs_pii.exceptions import ConfigError
+from jev_vs_pii.lanes import jev
+from jev_vs_pii.lanes.jev_designs import BIO, TYPED, WORDS, in_context
+from jev_vs_pii.lanes.registry import LaneDeps, build_lane
+from jev_vs_pii.schema import Doc
+from jev_vs_pii.taxonomy import DEFINITIONS, definition
+from jev_vs_pii.words import split_words
 
 _DOC = Doc(
     id="d1", dataset="ai4privacy", split="test", text="Please call Marie Dupont today.", gold=()

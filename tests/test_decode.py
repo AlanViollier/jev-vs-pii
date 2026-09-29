@@ -7,7 +7,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
-from pii_bench.decode import (
+from jev_vs_pii.decode import (
     Closing,
     DecodeParams,
     Hysteresis,
@@ -20,7 +20,7 @@ from pii_bench.decode import (
     threshold_mask,
     viterbi_mask,
 )
-from pii_bench.schema import Word, WordScore
+from jev_vs_pii.schema import Word, WordScore
 
 _probs = st.floats(min_value=0.0, max_value=1.0)
 _score_lists = st.lists(st.builds(WordScore, p_pii=_probs), max_size=40)

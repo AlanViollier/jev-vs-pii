@@ -3,7 +3,7 @@ requires = ["hatchling>=1.22"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pii-bench"
+name = "jev-vs-pii"
 version = "0.1.0"
 description = "Head-to-head benchmark of PII span detection in English text: rules, NER, a decision model and LLMs, measured on accuracy, calibration, cost and latency."
 requires-python = ">=3.12"
@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pii-bench = "pii_bench.cli:main"
+jev-vs-pii = "jev_vs_pii.cli:main"
 
 [project.optional-dependencies]
 ## Local models (Presidio + spaCy, OpenAI Privacy Filter, NVIDIA GLiNER-PII) and TAB's official script.
@@ -54,7 +54,7 @@ dev = [
 allow-direct-references = true  # the spaCy model wheel is only published on GitHub
 
 [tool.hatch.build.targets.wheel]
-packages = ["pii_bench"]
+packages = ["jev_vs_pii"]
 
 [tool.ruff]
 target-version = "py312"

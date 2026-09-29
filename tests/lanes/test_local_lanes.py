@@ -7,10 +7,10 @@ import importlib.util
 
 import pytest
 
-from pii_bench.lanes.gliner_pii import windows
-from pii_bench.lanes.privacy_filter import bioes_spans
-from pii_bench.schema import Doc, Span
-from pii_bench.words import split_words, word_scores_from
+from jev_vs_pii.lanes.gliner_pii import windows
+from jev_vs_pii.lanes.privacy_filter import bioes_spans
+from jev_vs_pii.schema import Doc, Span
+from jev_vs_pii.words import split_words, word_scores_from
 
 _TEXT = "Mail Marie Dupont at marie@example.fr today."
 
@@ -65,8 +65,8 @@ def test_word_scores_take_the_best_range_touching_each_word() -> None:
 )
 @pytest.mark.parametrize("lane_id", ["privacy_filter", "gliner_pii"])
 def test_local_models_find_a_name_and_an_email(lane_id: str) -> None:
-    from pii_bench.lanes.gliner_pii import GlinerPiiLane
-    from pii_bench.lanes.privacy_filter import PrivacyFilterLane
+    from jev_vs_pii.lanes.gliner_pii import GlinerPiiLane
+    from jev_vs_pii.lanes.privacy_filter import PrivacyFilterLane
 
     lane = PrivacyFilterLane() if lane_id == "privacy_filter" else GlinerPiiLane()
     doc = Doc(id="d", dataset="ai4privacy", split="test", text=_TEXT, gold=())
