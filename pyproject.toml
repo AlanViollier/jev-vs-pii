@@ -16,7 +16,7 @@ dependencies = [
     "structlog>=24.1",        # structured logging — default for any pipeline
     "tenacity>=8.2",          # retry/backoff for transient I/O — drop only if the project has no flaky calls
     "typer>=0.27.2",
-    "huggingface-hub>=2.0",    # ai4privacy download, pinned revision
+    "huggingface-hub>=1.5",    # dataset downloads at pinned revisions (transformers needs <2)
     "httpx>=0.28",             # TAB download + Decisions API
     "pyarrow>=17",
 ]
@@ -25,9 +25,13 @@ dependencies = [
 pii-bench = "pii_bench.cli:main"
 
 [project.optional-dependencies]
-## The `presidio` lane: Presidio's analyzer and the spaCy model it loads by default.
+## Local models: Presidio + its spaCy model, OpenAI Privacy Filter, NVIDIA GLiNER-PII.
 ner = [
     "presidio-analyzer>=2.2",
+    "transformers>=4.50",
+    "torch>=2.4",
+    "gliner>=0.2.21",
+    "opf @ git+https://github.com/openai/privacy-filter@f7f00ca7fb869683eb732c010299d901457f19c3",
     "en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl",
 ]
 dev = [
@@ -80,7 +84,7 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["presidio_analyzer.*"]
+module = ["presidio_analyzer.*", "transformers.*", "torch.*", "gliner.*", "opf.*"]
 ignore_missing_imports = true  # optional extra, absent in CI
 
 [tool.interrogate]

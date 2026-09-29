@@ -30,6 +30,8 @@ LANE_IDS = (
     "mask_all",
     "regex",
     "presidio",
+    "privacy_filter",
+    "gliner_pii",
     *(f"jev_{name}" for name in DESIGNS),
     *(f"llm_{name}" for name in FORMATS),
 )
@@ -68,9 +70,17 @@ def build_lane(lane_id: str, deps: LaneDeps, decoder: DecodeParams | None = None
             return MaskAllLane()
         case "regex":
             return RegexLane()
+        ## Local-model lanes import here, so only they need the heavy optional NER extra.
         case "presidio":
-            ## Imported here so the heavy optional NER extra is only needed by this lane.
             from pii_bench.lanes.presidio import PresidioLane
 
             return PresidioLane()
+        case "privacy_filter":
+            from pii_bench.lanes.privacy_filter import PrivacyFilterLane
+
+            return PrivacyFilterLane()
+        case "gliner_pii":
+            from pii_bench.lanes.gliner_pii import GlinerPiiLane
+
+            return GlinerPiiLane()
     raise ConfigError(f"unknown lane {lane_id!r}; known: {', '.join(LANE_IDS)}")

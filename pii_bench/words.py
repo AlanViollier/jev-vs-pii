@@ -1,4 +1,4 @@
-"""Split text into words with character offsets, and find which span covers each word."""
+"""Split text into words with character offsets; map spans and scores onto those words."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import re
 import unicodedata
 from collections.abc import Sequence
 
-from pii_bench.schema import Span, Word
+from pii_bench.schema import Span, Word, WordScore
 
 _TOKEN = re.compile(r"\S+")
 
@@ -71,3 +71,28 @@ def covering_spans(words: Sequence[Word], spans: Sequence[Span]) -> list[Span | 
 def _is_punct(char: str) -> bool:
     """Unicode punctuation (categories P*): quotes, brackets, dashes, stops."""
     return unicodedata.category(char).startswith("P")
+
+
+def word_scores_from(words: Sequence[Word], scored: Sequence[Span]) -> tuple[WordScore, ...]:
+    """Per-word probability from scored ranges (model tokens or spans): the best one touching it.
+
+    Parameters
+    ----------
+    words:
+        Words of the doc, from `split_words`.
+    scored:
+        Character ranges with a `score` in [0, 1]; may overlap, any order.
+
+    Returns
+    -------
+    tuple[WordScore, ...]
+        One score per word; 0 for a word no range touches.
+    """
+    best = [0.0] * len(words)
+    for span in scored:
+        first = bisect.bisect_right(words, span.start, key=lambda word: word.end)
+        for i in range(first, len(words)):
+            if words[i].start >= span.end:
+                break
+            best[i] = max(best[i], span.score or 0.0)
+    return tuple(WordScore(p_pii=p) for p in best)
