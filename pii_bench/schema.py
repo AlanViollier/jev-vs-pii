@@ -226,7 +226,8 @@ class ResultRow(_Frozen):
     shape (format / context), predicted words by predicted type, and for TAB the words of
     entities left in clear that the lane masked anyway. `per_doc` feeds paired comparisons and plots;
     `reliability` and `threshold_curve` exist for lanes that score words; the top error
-    strings are kept for TAB only, whose licence allows showing its text.
+    strings are kept for TAB only, whose licence allows showing its text; `tab_official`
+    holds TAB's own evaluation script's measures on a headline TAB row.
     """
 
     lane: LaneInfo
@@ -253,6 +254,7 @@ class ResultRow(_Frozen):
     threshold_curve: tuple[CurvePoint, ...] | None = None
     top_missed: tuple[tuple[str, int], ...] = ()
     top_false_alarms: tuple[tuple[str, int], ...] = ()
+    tab_official: dict[str, float] | None = None
 
     @property
     def name(self) -> str:

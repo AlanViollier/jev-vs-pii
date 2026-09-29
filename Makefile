@@ -15,8 +15,8 @@ help:
 	@echo "  ci           - Mirror of GitHub CI: pre-commit run --all-files + pip-audit"
 	@echo "  audit        - Scan dependencies for known CVEs (network; not in 'check')"
 	@echo "  clean        - Remove caches and build artefacts"
-	@echo "  bench-free   - Free lanes (floor, regex, Presidio) on both test sets"
-	@echo "  bench-tune   - Jev word scores on 20 dev docs per dataset, then decoder tuning"
+	@echo "  bench-free   - Free lanes (floor, regex, Presidio, local models) on the three test sets"
+	@echo "  bench-tune   - Every lane on 20 dev docs per dataset (the pilot), then decoder tuning"
 	@echo "  bench        - The full benchmark: free lanes, tuning, every paid lane, scores, chart"
 
 install:
@@ -115,26 +115,33 @@ clean:
 ## config (every response is cached, so a rerun pays nothing twice).
 RUN ?= runs/test
 DEV ?= runs/dev
+DATASETS := ai4privacy tab nemotron
 comma := ,
 space := $(empty) $(empty)
-FREE_LANES := mask_all,regex,presidio
+FREE_LANES := mask_all,regex,presidio,privacy_filter,gliner_pii
 JEV_LANES := jev_words,jev_typed,jev_bio
-MODELS := qwen3-30b qwen3-235b gpt4.1-nano gpt-oss-120b llama3-8b haiku4.5
+MODELS := qwen3-30b qwen3-235b gpt4.1-nano llama3-8b deepseek-v4-flash deepseek-v4-flash-think haiku4.5
 LLM_LANES := $(subst $(space),$(comma),$(foreach model,$(MODELS),llm_sayback:$(model)))
 ## The answer-format study: one model, every format.
 FORMAT_LANES := llm_offsets:qwen3-30b,llm_tagged:qwen3-30b
+ALL_LANES := $(FREE_LANES),$(JEV_LANES),$(LLM_LANES),$(FORMAT_LANES)
 
 bench-free:
-	uv run pii-bench run --lanes $(FREE_LANES) --dataset ai4privacy --tier full --out $(RUN)
-	uv run pii-bench run --lanes $(FREE_LANES) --dataset tab --tier full --out $(RUN)
+	for dataset in $(DATASETS); do \
+	  uv run pii-bench run --lanes $(FREE_LANES) --dataset $$dataset --tier full --out $(RUN) || exit 1; \
+	done
 
+## Every lane on 20 dev docs per dataset: the pilot, and the data every decoder is tuned on.
 bench-tune:
-	uv run pii-bench run --lanes $(JEV_LANES) --dataset ai4privacy --split dev --tier pilot --out $(DEV)
-	uv run pii-bench run --lanes $(JEV_LANES) --dataset tab --split dev --tier pilot --out $(DEV)
+	for dataset in $(DATASETS); do \
+	  uv run pii-bench run --lanes $(ALL_LANES) --dataset $$dataset --split dev --tier pilot --out $(DEV) || exit 1; \
+	done
 	uv run pii-bench tune $(DEV)
+	uv run pii-bench score $(DEV)
 
-bench: bench-free bench-tune
-	uv run pii-bench run --lanes $(JEV_LANES),$(LLM_LANES),$(FORMAT_LANES) --dataset ai4privacy --tier full --out $(RUN)
-	uv run pii-bench run --lanes $(JEV_LANES),$(LLM_LANES),$(FORMAT_LANES) --dataset tab --tier full --out $(RUN)
+bench: bench-tune
+	for dataset in $(DATASETS); do \
+	  uv run pii-bench run --lanes $(ALL_LANES) --dataset $$dataset --tier full --out $(RUN) || exit 1; \
+	done
 	uv run pii-bench score $(RUN)
 	uv run pii-bench report $(RUN)

@@ -173,7 +173,15 @@ def test_results_page_has_every_section_and_a_paired_comparison() -> None:
         *score_lane_run(regex, docs),
     ]
     page = results_markdown(rows)
-    for section in ("Word level", "paired bootstrap", "Cost and time", "DIRECT", "Exact span"):
+    for section in (
+        "Word level",
+        "paired bootstrap",
+        "Cost and time",
+        "DIRECT",
+        "Format vs context",
+        "Every decoder on per-word scores",
+        "Exact span",
+    ):
         assert section in page
     assert "| regex | -" in page
     assert pareto_frontier([row for row in rows if row.mode == "word"]) == {

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+from pathlib import Path
 
 from pii_bench.decode import DecodeParams, decode, describe
 from pii_bench.metrics.bootstrap import bootstrap_ci
@@ -19,6 +20,7 @@ from pii_bench.metrics.spans import (
     predicted_hits_by_type,
     scores_from_counts,
 )
+from pii_bench.metrics.tab_official import tab_official_scores
 from pii_bench.schema import (
     Doc,
     DocResult,
@@ -41,6 +43,7 @@ def score_lane_run(
     decoder: DecodeParams | None = None,
     seed: int = 0,
     headline: bool = True,
+    data_dir: Path | None = None,
 ) -> list[ResultRow]:
     """Score one lane run in every match mode.
 
@@ -56,6 +59,9 @@ def score_lane_run(
         Bootstrap seed.
     headline:
         Whether these rows are the lane's headline rows.
+    data_dir:
+        When given, a headline TAB row also gets TAB's official measures, computed by its
+        own script from the fetched data there.
 
     Returns
     -------
@@ -66,10 +72,18 @@ def score_lane_run(
     scored = [by_id[prediction.doc_id] for prediction in lane_run.predictions]
     spans = [_spans(doc, p, decoder) for doc, p in zip(scored, lane_run.predictions, strict=True)]
     probs, labels = _word_probs(scored, lane_run.predictions)
-    return [
+    rows = [
         _row(lane_run, scored, spans, mode, decoder, headline, seed, probs, labels)
         for mode in MODES
     ]
+    if data_dir is None or lane_run.dataset != "tab" or not headline:
+        return rows
+    masked = [
+        prediction.model_copy(update={"spans": tuple(doc_spans)})
+        for prediction, doc_spans in zip(lane_run.predictions, spans, strict=True)
+    ]
+    official = tab_official_scores(masked, data_dir, lane_run.split)
+    return [rows[0].model_copy(update={"tab_official": official}), *rows[1:]]
 
 
 def human_lane_run(docs: Sequence[Doc]) -> LaneRun | None:

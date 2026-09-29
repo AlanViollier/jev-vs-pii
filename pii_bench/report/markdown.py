@@ -58,6 +58,8 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
         ]
         if dataset == "tab":
             sections += [
+                "### TAB's official script (entity recall on direct / quasi identifiers, token P/R/F1)",
+                _official_table(word),
                 "### Recall by masking need: DIRECT identifiers vs QUASI (combine to re-identify)",
                 hits_table(word, _regrouped(lambda detail: detail.split()[0])),
                 "### Recall by TAB entity type",
@@ -76,15 +78,38 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
             "### Exact span match",
             results_table([row for row in headline if row.mode == "exact"]),
         ]
-        decoded = [row for row in group if row.mode == "word" and row.lane.family == "jev"]
+        ## Lanes that score words have calibration; every decoder was tried on their scores.
+        scorers = {row.lane.id for row in group if row.ece is not None}
+        decoded = [row for row in group if row.mode == "word" and row.lane.id in scorers]
         if decoded:
             sections += [
-                "### Every decoder on the Jev word scores (word level)",
+                "### Every decoder on per-word scores (word level)",
                 results_table(decoded),
             ]
         if dataset == "tab":
             sections += ["### Most leaked and most over-masked strings", _errors(word)]
     return "\n\n".join(sections) + "\n"
+
+
+def _official_table(rows: Sequence[ResultRow]) -> str:
+    """TAB's own measures per lane, in the names its paper uses."""
+    columns = {
+        "recall_direct_entities": "ER direct",
+        "recall_quasi_entities": "ER quasi",
+        "token_recall": "token R",
+        "token_precision": "token P",
+        "token_f1": "token F1",
+    }
+    lines = [
+        f"| lane | {' | '.join(columns.values())} |",
+        f"|---|{'---|' * len(columns)}",
+    ]
+    for row in sorted(rows, key=lambda row: row.scores.f2, reverse=True):
+        if row.tab_official is None:
+            continue
+        values = " | ".join(f"{row.tab_official[name]:.3f}" for name in columns)
+        lines.append(f"| {row.name} | {values} |")
+    return "\n".join(lines)
 
 
 def _shape_table(rows: Sequence[ResultRow]) -> str:

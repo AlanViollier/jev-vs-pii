@@ -114,10 +114,17 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
     split_docs: dict[tuple[Dataset, Split], list[Doc]] = {}
     for lane_run, docs in _with_docs(load_lane_runs(run_dir), settings):
         decoders = tuned.get(lane_run.lane.id, {}).get(lane_run.dataset, [])
-        rows += score_lane_run(lane_run, docs, seed=settings.seed, headline=not decoders)
+        rows += score_lane_run(
+            lane_run, docs, seed=settings.seed, headline=not decoders, data_dir=settings.data_dir
+        )
         for rank, decoder in enumerate(decoders):
             rows += score_lane_run(
-                lane_run, docs, decoder.params, seed=settings.seed, headline=rank == 0
+                lane_run,
+                docs,
+                decoder.params,
+                seed=settings.seed,
+                headline=rank == 0,
+                data_dir=settings.data_dir,
             )
         key = (lane_run.dataset, lane_run.split)
         ran[key] |= {prediction.doc_id for prediction in lane_run.predictions}
@@ -125,7 +132,9 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
     for key, doc_ids in ran.items():
         human = human_lane_run([doc for doc in split_docs[key] if doc.id in doc_ids])
         if human is not None:
-            rows += score_lane_run(human, split_docs[key], seed=settings.seed)
+            rows += score_lane_run(
+                human, split_docs[key], seed=settings.seed, data_dir=settings.data_dir
+            )
     (run_dir / "scores.json").write_text(
         json.dumps([row.model_dump(mode="json") for row in rows], indent=1)
     )
@@ -141,7 +150,7 @@ def report(run_dir: Annotated[Path, typer.Argument()]) -> None:
         ResultRow.model_validate(row) for row in json.loads((run_dir / "scores.json").read_text())
     ]
     panels = []
-    for dataset in ("ai4privacy", "tab"):
+    for dataset in ("ai4privacy", "nemotron", "tab"):
         chosen = [r for r in rows if r.dataset == dataset and r.mode == "word" and r.headline]
         if chosen:
             panels.append((f"{dataset} · {chosen[0].split} · word-level F2", chosen))

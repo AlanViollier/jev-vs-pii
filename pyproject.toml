@@ -25,13 +25,18 @@ dependencies = [
 pii-bench = "pii_bench.cli:main"
 
 [project.optional-dependencies]
-## Local models: Presidio + its spaCy model, OpenAI Privacy Filter, NVIDIA GLiNER-PII.
+## Local models (Presidio + spaCy, OpenAI Privacy Filter, NVIDIA GLiNER-PII) and TAB's official script.
 ner = [
     "presidio-analyzer>=2.2",
     "transformers>=4.50",
     "torch>=2.4",
     "gliner>=0.2.21",
     "opf @ git+https://github.com/openai/privacy-filter@f7f00ca7fb869683eb732c010299d901457f19c3",
+    ## TAB's official evaluation script imports these and tokenises with spaCy's md model.
+    "pandas>=2.2",
+    "intervaltree>=3.1",
+    "tqdm>=4.66",
+    "en-core-web-md @ https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl",
     "en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl",
 ]
 dev = [
