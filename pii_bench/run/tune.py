@@ -24,7 +24,11 @@ GRID: dict[str, list[DecodeParams]] = {
         if low < high
     ],
     "closing": [Closing(cutoff=c, gap=gap) for c in _CUTOFFS for gap in (1, 2)],
-    "viterbi": [Viterbi(switch_cost=cost) for cost in (0.0, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0)],
+    "viterbi": [
+        Viterbi(cutoff=c, switch_cost=cost)
+        for c in _CUTOFFS[::2]
+        for cost in (0.25, 0.5, 1.0, 2.0, 4.0)
+    ],
 }
 
 

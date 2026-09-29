@@ -27,7 +27,7 @@ _score_lists = st.lists(st.builds(WordScore, p_pii=_probs), max_size=40)
 _params = st.one_of(
     st.builds(Threshold, cutoff=_probs),
     st.builds(Closing, cutoff=_probs, gap=st.integers(0, 3)),
-    st.builds(Viterbi, switch_cost=st.floats(0.0, 5.0)),
+    st.builds(Viterbi, cutoff=st.floats(0.01, 0.99), switch_cost=st.floats(0.0, 5.0)),
     st.tuples(_probs, _probs).map(lambda pair: Hysteresis(high=max(pair), low=min(pair))),
 )
 
@@ -75,10 +75,12 @@ def test_closing_without_gap_is_threshold(scores: list[WordScore], cutoff: float
 
 
 @settings(max_examples=100)
-@given(_score_lists)
-def test_free_switching_viterbi_is_threshold_at_half(scores: list[WordScore]) -> None:
-    assert viterbi_mask(scores, Viterbi(switch_cost=0.0)) == threshold_mask(
-        scores, Threshold(cutoff=0.5)
+@given(_score_lists, st.sampled_from([0.2, 0.35, 0.5, 0.8]))
+def test_free_switching_viterbi_is_threshold_at_its_cutoff(
+    scores: list[WordScore], cutoff: float
+) -> None:
+    assert viterbi_mask(scores, Viterbi(cutoff=cutoff, switch_cost=0.0)) == threshold_mask(
+        scores, Threshold(cutoff=cutoff)
     )
 
 

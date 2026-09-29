@@ -46,9 +46,13 @@ class Closing(BaseModel):
 
 
 class Viterbi(BaseModel):
-    """Cheapest in/out path: each word costs -log of the chosen side's probability, each switch `switch_cost`."""
+    """Cheapest in/out path: each word costs -log of the chosen side's probability, each switch `switch_cost`.
+
+    `cutoff` moves the prior: a lone word is in exactly when `p_pii >= cutoff`, as with threshold.
+    """
 
     kind: Literal["viterbi"] = "viterbi"
+    cutoff: float = Field(default=0.5, gt=0.0, lt=1.0)
     switch_cost: float = Field(default=0.5, ge=0.0)
 
 
@@ -124,14 +128,15 @@ def viterbi_mask(scores: Sequence[WordScore], params: Viterbi) -> list[bool]:
     ## Cheapest path so far ending out / in, and where each came from. Ties go in, like threshold's >=.
     cost_out, cost_in = 0.0, 0.0
     came_from_in: list[tuple[bool, bool]] = []
+    prior_in, prior_out = math.log(params.cutoff), math.log(1 - params.cutoff)
     for score in scores:
         p_in = min(max(score.p_pii, _EPS), 1 - _EPS)
         out_via_in = cost_in + params.switch_cost <= cost_out
         in_via_in = cost_in <= cost_out + params.switch_cost
         came_from_in.append((out_via_in, in_via_in))
         cost_out, cost_in = (
-            min(cost_out, cost_in + params.switch_cost) - math.log(1 - p_in),
-            min(cost_in, cost_out + params.switch_cost) - math.log(p_in),
+            min(cost_out, cost_in + params.switch_cost) - math.log(1 - p_in) + prior_out,
+            min(cost_in, cost_out + params.switch_cost) - math.log(p_in) + prior_in,
         )
     inside = cost_in <= cost_out
     path = []
