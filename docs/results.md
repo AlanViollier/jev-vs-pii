@@ -576,3 +576,35 @@
   over-masks: 1 november 1998 (21), 1 november 2001 (12), 17 june 2004 (7), 25 february 1997 (3), 1997-i (3), 1998-iv (2), 15 november 1996 (2), 65731/01 (2)
 - → **llm_sayback:gpt4.1-nano** leaks: british (28), serco (20), united kingdom (19), widows (16), pkk (15), mr benham (13), industries (12), turkish (11)  
   over-masks: the applicant (340), ankara (41), the court (36), the applicants (33), istanbul (29), london (26), foreign and commonwealth office (22), izmir (17)
+
+## Checks and what-ifs
+
+### What-if: Jev never asked about stop words (spaCy's English list; stored scores, same threshold)
+
+| lane | dataset | questions kept | gold words that are stop words | F2 before → after | P before → after | R before → after | F1 before → after |
+|---|---|---|---|---|---|---|---|
+| jev_typed | ai4privacy | 74% | 2.4% | 0.829 → 0.825 | 0.577 → 0.587 | 0.931 → 0.918 | 0.713 → 0.716 |
+| jev_typed | nemotron | 57% | 1.7% | 0.792 → 0.829 | 0.469 → 0.555 | 0.958 → 0.945 | 0.630 → 0.700 |
+| jev_typed | tab | 53% | 5.8% | 0.790 → 0.801 | 0.651 → 0.777 | 0.834 → 0.807 | 0.731 → 0.792 |
+| jev_words | ai4privacy | 74% | 2.4% | 0.841 → 0.840 | 0.631 → 0.650 | 0.918 → 0.906 | 0.748 → 0.757 |
+| jev_words | nemotron | 57% | 1.7% | 0.719 → 0.779 | 0.365 → 0.467 | 0.950 → 0.936 | 0.527 → 0.623 |
+| jev_words | tab | 53% | 5.8% | 0.680 → 0.697 | 0.533 → 0.657 | 0.731 → 0.707 | 0.616 → 0.681 |
+
+### Check: Jev's answers before vs past its documented 32,000-token context
+
+| lane | dataset | words before | Brier before | PII share before | words past | Brier past | PII share past |
+|---|---|---|---|---|---|---|---|
+| jev_typed | ai4privacy | 23,137 | 0.129 | 0.172 | 0 | – | – |
+| jev_typed | nemotron | 49,075 | 0.075 | 0.102 | 1,874 | 0.052 | 0.044 |
+| jev_typed | tab | 81,925 | 0.068 | 0.119 | 24,759 | 0.073 | 0.124 |
+| jev_words | ai4privacy | 23,137 | 0.061 | 0.172 | 0 | – | – |
+| jev_words | nemotron | 50,949 | 0.046 | 0.100 | 0 | – | – |
+| jev_words | tab | 106,684 | 0.067 | 0.120 | 0 | – | – |
+
+### Check: two lanes on only the docs both answered
+
+| dataset | lane A | lane B | docs | F2 A | F2 B | P A / B | R A / B |
+|---|---|---|---|---|---|---|---|
+| ai4privacy | llm_sayback:deepseek-v4-flash | llm_sayback:deepseek-v4-flash-think | 500 | 0.946 | 0.948 | 0.894 / 0.895 | 0.960 / 0.962 |
+| nemotron | llm_sayback:deepseek-v4-flash | llm_sayback:deepseek-v4-flash-think | 499 | 0.922 | 0.868 | 0.951 / 0.964 | 0.916 / 0.847 |
+| tab | llm_sayback:deepseek-v4-flash | llm_sayback:deepseek-v4-flash-think | 118 | 0.737 | 0.737 | 0.807 / 0.843 | 0.721 / 0.715 |

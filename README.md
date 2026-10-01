@@ -73,7 +73,7 @@ Chart-ready numbers: [`docs/data/`](docs/data).
 
 **Everything else**
 
-- → **Thinking bought nothing.** On the 118 TAB docs both DeepSeek modes answered, they score the same F2 (0.737). The TAB gap is 8 thinking answers cut off at the token cap, at 10 times the latency and 4.6 times the cost. On Nemotron-PII thinking made it more conservative: precision 0.96 and recall 0.84, against 0.95 and 0.92.
+- → **Thinking bought nothing.** On the 118 TAB docs both DeepSeek modes answered, they score the same F2 (0.737; `docs/results.md`, last section). The TAB gap is 8 thinking answers cut off at the token cap, at 10 times the latency and 4.6 times the cost. On Nemotron-PII thinking made it more conservative: precision 0.96 and recall 0.84, against 0.95 and 0.92.
 - → **Model size matters where context matters.** Qwen3 235B over 30B: +0.01 F2 on the synthetic sets, +0.07 on TAB. GPT-4.1 nano drops to 0.48 on TAB.
 - → **Local models are close on simple text, free, and limited by what they were trained on.** GLiNER-PII ties `jev_words` on ai4privacy. Privacy Filter's precision is 0.88 to 0.93, but its 8 categories leave out organisations, demographics and most IDs. Presidio does well on TAB (0.744), where most PII is names, dates and places.
 - → **Every method leaks what identifies someone only through context**: the employer ("Serco"), a court that names the town ("Będzin District Court"), what the case is about ("widows"). The most-leaked and most over-masked strings per method are in `docs/results.md`.
@@ -92,7 +92,8 @@ and not part of the headline: skipping the words in spaCy's standard English sto
 list removes 47% of the questions on TAB. Precision goes from 0.65 to 0.78, recall from
 0.83 to 0.81, F2 from 0.790 to 0.801, and F1 to 0.79, level with Haiku, at roughly half
 the cost. The cost of skipping: 5.8% of TAB's PII words are stop words, and those would
-always be missed.
+always be missed. The code is `report/analyses.py`; every dataset's numbers are at the end
+of [`docs/results.md`](docs/results.md).
 
 **Isn't tuning a threshold an unfair edge over the LLMs?** It's tuned on 20 dev
 documents per dataset, never on test. A probability you can put a threshold on is part of
@@ -165,7 +166,7 @@ recommendation of what to deploy.
 | LLMs, via OpenRouter | `llm_sayback:<model>`: list the PII strings, code finds them in the text · `llm_offsets`: character offsets · `llm_tagged`: rewrite the text with tags | spans |
 
 - → **Lanes that read instructions get the same brief** (Jev and the LLMs): the dataset's own annotation guidelines (ai4privacy's and Nemotron-PII's label lists, TAB's published guidelines), then the six types to answer in (`taxonomy.definition`). Regex, Presidio and Privacy Filter run as shipped; GLiNER-PII gets a fixed list of label names.
-- → **Jev** gets the whole document once as its state and one question per word, with the word bracketed in a few words of context. Questions are packed into as few calls as fit. Jev's docs give a 32k-token context; calls are packed up to an estimated 48k because larger calls were accepted, and on the dev pilot answers past 32k scored the same as earlier ones (TAB, `jev_words`: Brier 0.061 past 32k, 0.063 before).
+- → **Jev** gets the whole document once as its state and one question per word, with the word bracketed in a few words of context. Questions are packed into as few calls as fit. Jev's docs give a 32k-token context; calls are packed up to an estimated 48k because larger calls were accepted. Counted in billed tokens, only `jev_typed` went past 32k, and on TAB its answers there are slightly worse: Brier 0.073 against 0.068 before, on a similar share of PII (`docs/results.md`, last section).
 - → **Per-word scores become spans through a threshold tuned on dev** (word-level F2, never on test), for every lane that scores words. Three structured decoders (hysteresis, gap closing, Viterbi) were tuned the same way and are reported beside it; on the dev pilot none beat the threshold by more than about 0.02 F2.
 - → **Privacy Filter**'s own spans come from OpenAI's constrained Viterbi (`opf` package) at its default operating point and match OpenAI's reference runtime; they are in the decoder table. Its headline row uses the tuned threshold on its per-word probability, like the other scorers. That threshold lands at 0.001, the bottom of the grid: at F2 it pays to mask anything the model gives any weight to.
 - → **GLiNER-PII** returns candidates down to a 0.05 score; its card default is 0.5. Long documents run in windows sized to its 384-token limit, overlapping by 50 words.
@@ -248,6 +249,7 @@ nothing. `jev-vs-pii export runs/test` rewrites `docs/results.md` and `docs/data
 - → Thresholds are tuned on 20 dev docs per dataset.
 - → One run per method at temperature 0. OpenRouter picks the serving provider per call (recorded with every answer), which can change behaviour between runs; only the reasoning pair is pinned.
 - → Jev 1.13 is served from an alpha endpoint; its behaviour and prices may change.
+- → `jev_typed` calls on TAB were packed past Jev's documented 32k context, where its answers are slightly worse (§06). Packing to 32k would be the safe setting, at more calls per document.
 - → TAB is scored against its first annotator.
 - → Prices are OpenRouter list prices on the run date.
 

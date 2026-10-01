@@ -35,9 +35,9 @@ class JevLane:
         questions: dict[str, Question] = {}
         for i in range(len(words)):
             questions.update(self._design.ask(doc, words, i))
-        state = f"{definition(doc)}\n\nText:\n{doc.text}"
+        state = state_for(doc)
         results = await asyncio.gather(
-            *(self._client.ask(state, batch) for batch in _batches(state, questions))
+            *(self._client.ask(state, batch) for batch in batches(state, questions))
         )
         answers: dict[str, Answer] = {}
         for result in results:
@@ -52,16 +52,31 @@ class JevLane:
         )
 
 
-def _batches(state: str, questions: dict[str, Question]) -> list[dict[str, Question]]:
+def state_for(doc: Doc) -> str:
+    """What Jev reads before any question: the PII brief, then the doc."""
+    return f"{definition(doc)}\n\nText:\n{doc.text}"
+
+
+def estimated_tokens(text: str) -> float:
+    """An over-count of the tokens Jev bills for `text`, as JSON."""
+    return len(text) / _CHARS_PER_TOKEN
+
+
+def question_json(key: str, question: Question) -> str:
+    """One question as it appears in the request body."""
+    return json.dumps({key: question.model_dump()})
+
+
+def batches(state: str, questions: dict[str, Question]) -> list[dict[str, Question]]:
     """Split questions into calls whose estimated size, state included, fits `MAX_INPUT_TOKENS`."""
     budget = MAX_INPUT_TOKENS * _CHARS_PER_TOKEN - len(json.dumps(state))
-    batches: list[dict[str, Question]] = [{}]
+    calls: list[dict[str, Question]] = [{}]
     used = 0.0
     for key, question in questions.items():
-        size = len(json.dumps({key: question.model_dump()}))
-        if batches[-1] and used + size > budget:
-            batches.append({})
+        size = len(question_json(key, question))
+        if calls[-1] and used + size > budget:
+            calls.append({})
             used = 0.0
-        batches[-1][key] = question
+        calls[-1][key] = question
         used += size
-    return batches if batches[0] else []
+    return calls if calls[0] else []

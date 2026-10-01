@@ -88,7 +88,7 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["presidio_analyzer.*", "transformers.*", "torch.*", "gliner.*", "opf.*"]
+module = ["presidio_analyzer.*", "transformers.*", "torch.*", "gliner.*", "opf.*", "spacy.*"]
 ignore_missing_imports = true  # optional extra, absent in CI
 
 [tool.interrogate]
