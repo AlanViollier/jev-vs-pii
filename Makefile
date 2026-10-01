@@ -143,9 +143,10 @@ bench-tune:
 	uv run jev-vs-pii tune $(DEV)
 	uv run jev-vs-pii score $(DEV)
 
+## Scores and chart are written even when a lane failed, so what finished is readable;
+## the target still fails so the missing lanes aren't missed.
 bench: bench-tune
 	status=0; for dataset in $(DATASETS); do \
 	  uv run jev-vs-pii run --lanes $(TEST_LANES) --dataset $$dataset --tier full --out $(RUN) || status=1; \
-	done; exit $$status
-	uv run jev-vs-pii score $(RUN)
-	uv run jev-vs-pii report $(RUN)
+	done; \
+	uv run jev-vs-pii score $(RUN) && uv run jev-vs-pii report $(RUN) && exit $$status

@@ -8,13 +8,15 @@ from pathlib import Path
 
 import pytest
 
-from jev_vs_pii.decode import Threshold
+from jev_vs_pii.decode import Threshold, Viterbi
 from jev_vs_pii.lanes.mask_all import MaskAllLane
 from jev_vs_pii.lanes.regex import RegexLane
 from jev_vs_pii.metrics.results import human_lane_run, score_lane_run
 from jev_vs_pii.report.markdown import results_markdown
-from jev_vs_pii.report.tables import pareto_frontier
+from jev_vs_pii.report.tables import hits_table, pareto_frontier
 from jev_vs_pii.run import (
+    TunedDecoder,
+    headline_decoder,
     load_lane_runs,
     load_tuned,
     ranked,
@@ -103,6 +105,13 @@ def test_tuning_finds_the_cutoff_that_catches_a_low_scored_name() -> None:
     assert [d.dev_f2 for d in ranked(best)] == sorted((f for _, f in best.values()), reverse=True)
 
 
+def test_headline_is_the_tuned_threshold_even_when_another_kind_won_on_dev() -> None:
+    viterbi = TunedDecoder(params=Viterbi(), dev_f2=0.9)
+    threshold = TunedDecoder(params=Threshold(cutoff=0.2), dev_f2=0.8)
+    assert headline_decoder([viterbi, threshold]) is threshold
+    assert headline_decoder([viterbi]) is None
+
+
 def test_tuning_refuses_the_test_split() -> None:
     docs = [_doc(0, split="test")]
     with pytest.raises(ValueError, match="dev only"):
@@ -187,3 +196,20 @@ def test_results_page_has_every_section_and_a_paired_comparison() -> None:
     assert pareto_frontier([row for row in rows if row.mode == "word"]) == {
         "jev_words · threshold cutoff=0.5"
     }
+
+
+def test_a_label_table_with_no_big_enough_label_says_so() -> None:
+    doc = _doc(0)
+    rows = score_lane_run(_lane_run([_scored(doc, {})]), [doc])
+    assert hits_table(rows, lambda row: row.gold_by_type, min_total=1000).startswith("No group")
+
+
+def test_headline_table_carries_the_caveats_of_the_lanes_in_it() -> None:
+    doc = _doc(0)
+    rows = score_lane_run(_lane_run([_scored(doc, {})]), [doc])
+    llm = [
+        row.model_copy(update={"lane": LaneInfo(id="llm_sayback:x", family="llm")}) for row in rows
+    ]
+    page = results_markdown(llm)
+    assert "counts as finding nothing" in page
+    assert "Privacy Filter" not in page

@@ -14,10 +14,12 @@ from jev_vs_pii.words import split_words
 
 ## Finer at the bottom: small PII models put real hits at scores of a few percent.
 _CUTOFFS = [0.01, 0.02, 0.03, *(round(0.05 * step, 2) for step in range(1, 20))]
+## The headline decoder gets two finer steps still: Privacy Filter's dev optimum sat at 0.01.
+_THRESHOLD_CUTOFFS = [0.001, 0.005, *_CUTOFFS]
 
 ## Every decoder with a coarse grid over its knobs; tuning picks the best of each kind.
 GRID: dict[str, list[DecodeParams]] = {
-    "threshold": [Threshold(cutoff=c) for c in _CUTOFFS],
+    "threshold": [Threshold(cutoff=c) for c in _THRESHOLD_CUTOFFS],
     "hysteresis": [
         Hysteresis(high=high, low=low)
         for high in _CUTOFFS[7::2]
@@ -66,7 +68,9 @@ def tune_lane_run(lane_run: LaneRun, docs: Sequence[Doc]) -> dict[str, tuple[Dec
                 for (doc, scores), doc_words in zip(scored, words, strict=True)
             )
             f2 = scores_from_counts(counts).f2
-            if kind not in best or f2 > best[kind][1]:
+            ## Ties go to the later, higher setting: below a model's score floor every cutoff
+            ## masks the same words, and the label should show the cutoff that matters.
+            if kind not in best or f2 >= best[kind][1]:
                 best[kind] = (params, f2)
     return best
 
@@ -84,9 +88,18 @@ _TUNED = TypeAdapter(Tuned)
 
 
 def ranked(best: dict[str, tuple[DecodeParams, float]]) -> list[TunedDecoder]:
-    """Tuning results as stored: best dev F2 first, so the headline decoder is chosen on dev."""
+    """Tuning results as stored: best dev F2 first."""
     decoders = [TunedDecoder(params=params, dev_f2=f2) for params, f2 in best.values()]
     return sorted(decoders, key=lambda decoder: decoder.dev_f2, reverse=True)
+
+
+def headline_decoder(decoders: Sequence[TunedDecoder]) -> TunedDecoder | None:
+    """The tuned threshold: one decoder kind for every per-word lane's headline row.
+
+    Picking the best of every kind on 20 dev docs per dataset would select on noise; the
+    other kinds stay in the results as a side comparison.
+    """
+    return next((d for d in decoders if d.params.kind == "threshold"), None)
 
 
 def load_tuned(path: Path) -> Tuned:

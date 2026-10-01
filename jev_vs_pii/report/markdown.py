@@ -10,6 +10,30 @@ from jev_vs_pii.schema import Hits, ResultRow
 
 ## Fine dataset labels with fewer gold words than this in the split are left out as noise.
 _MIN_LABEL_WORDS = 30
+## What a reader must know before comparing a lane's headline number, per dataset.
+_CAVEATS: dict[str, list[tuple[str, str]]] = {
+    "ai4privacy": [
+        (
+            "privacy_filter",
+            "OpenAI reports Privacy Filter results on pii-masking-300k, this set's source.",
+        ),
+    ],
+    "nemotron": [
+        (
+            "gliner_pii",
+            "GLiNER-PII was trained on Nemotron-PII's train split. Test samples the test file; "
+            "dev samples train, so GLiNER's dev score and tuned threshold come from its own "
+            "training data.",
+        ),
+    ],
+}
+_ALWAYS = [
+    (
+        "privacy_filter",
+        "Privacy Filter has 8 categories: no organisations, demographics or most IDs.",
+    ),
+    ("llm_", "An LLM answer that is cut off or won't parse counts as finding nothing (`failed`)."),
+]
 
 
 def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
@@ -37,8 +61,9 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
         sizes = ", ".join(sorted({f"{row.n_docs} docs" for row in word}))
         sections += [
             f"## {dataset} · {split} ({sizes})",
-            "### Word level (headline; per-word lanes use the decoder that won on dev)",
+            "### Word level (headline; per-word lanes use a threshold tuned on dev)",
             results_table(word),
+            _caveats(dataset, word),
         ]
         jev = [row for row in word if row.lane.family == "jev"]
         if jev:
@@ -89,6 +114,17 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
         if dataset == "tab":
             sections += ["### Most leaked and most over-masked strings", _errors(word)]
     return "\n\n".join(sections) + "\n"
+
+
+def _caveats(dataset: str, rows: Sequence[ResultRow]) -> str:
+    """Notes for the lanes in this table whose number needs context to read."""
+    ids = {row.lane.id for row in rows}
+    notes = [
+        note
+        for prefix, note in [*_CAVEATS.get(dataset, []), *_ALWAYS]
+        if any(lane_id.startswith(prefix) for lane_id in ids)
+    ]
+    return "\n".join(f"- → {note}" for note in notes)
 
 
 def _official_table(rows: Sequence[ResultRow]) -> str:

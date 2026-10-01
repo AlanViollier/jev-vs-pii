@@ -87,13 +87,16 @@ def hits_table(rows: Sequence[ResultRow], hits_of: HitsOf, min_total: int = 1) -
     Returns
     -------
     str
-        A Markdown table; a dash where a lane has no words in that group.
+        A Markdown table, a dash where a lane has no words in that group; one line instead
+        when no group is big enough.
     """
     totals: Counter[str] = Counter()
     for row in rows:
         for group, (_, total) in hits_of(row).items():
             totals[group] = max(totals[group], total)
     groups = sorted(group for group, total in totals.items() if total >= min_total)
+    if not groups:
+        return f"No group has {min_total} or more words on this split."
     header = f"| lane | {' | '.join(groups)} |\n|---|{'---|' * len(groups)}"
     lines = [
         f"| {row.name} | " + " | ".join(_share(hits_of(row).get(group)) for group in groups) + " |"

@@ -26,6 +26,7 @@ from jev_vs_pii.metrics.results import human_lane_run, score_lane_run
 from jev_vs_pii.report.markdown import results_markdown
 from jev_vs_pii.report.svg import pareto_svg
 from jev_vs_pii.run import (
+    headline_decoder,
     load_lane_runs,
     load_tuned,
     new_run_dir,
@@ -118,16 +119,17 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
     split_docs: dict[tuple[Dataset, Split], list[Doc]] = {}
     for lane_run, docs in _with_docs(load_lane_runs(run_dir), settings):
         decoders = tuned.get(lane_run.lane.id, {}).get(lane_run.dataset, [])
+        chosen = headline_decoder(decoders)
         rows += score_lane_run(
-            lane_run, docs, seed=settings.seed, headline=not decoders, data_dir=settings.data_dir
+            lane_run, docs, seed=settings.seed, headline=chosen is None, data_dir=settings.data_dir
         )
-        for rank, decoder in enumerate(decoders):
+        for decoder in decoders:
             rows += score_lane_run(
                 lane_run,
                 docs,
                 decoder.params,
                 seed=settings.seed,
-                headline=rank == 0,
+                headline=decoder is chosen,
                 data_dir=settings.data_dir,
             )
         key = (lane_run.dataset, lane_run.split)
