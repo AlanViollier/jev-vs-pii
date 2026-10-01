@@ -207,7 +207,7 @@ labels exists; all three sets are either synthetic or legal.
 - → **Exact span match** next to it, the usual NER number.
 - → **Recall by type and by each dataset's own labels**, precision by the type a method claims, and on TAB the strings each method most often leaks or over-masks.
 - → **Calibration** (ECE, Brier, reliability bins) for every method that gives a probability per word.
-- → **Cost and time**: $ per 1k docs from each response's reported cost, calls and tokens per doc, latency mean / p50 / p95 per doc. Cached reruns report the original numbers. Local models run on an Apple M1 Pro (GPU where supported).
+- → **Cost and time**: $ per 1k docs from each response's reported cost, calls and tokens per doc, latency mean / p50 / p95 per doc (for Jev, whose questions on a long doc go out as parallel calls, the slowest of them). Cached reruns report the original numbers. Local models run on an Apple M1 Pro (GPU where supported).
 - → **Uncertainty**: 95% intervals by resampling whole documents, and paired intervals on the same documents for "is A really better than B".
 - → **Two reference rows**: mask everything (the floor) and TAB's second annotator (the ceiling). F2 leans on recall hard enough that masking everything scores 0.36 to 0.51 depending on how dense the PII is, so read every row against its dataset's floor.
 
