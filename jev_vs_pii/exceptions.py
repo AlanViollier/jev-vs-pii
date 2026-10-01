@@ -21,3 +21,7 @@ class ProviderError(PiiBenchError):
 
 class AlignmentError(PiiBenchError):
     """An LLM's answer can't be mapped back onto the source text."""
+
+
+class DataError(PiiBenchError):
+    """A dataset breaks an assumption the scoring relies on."""

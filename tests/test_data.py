@@ -177,3 +177,19 @@ def test_fetch_tab_skips_files_already_present(
 
     monkeypatch.setattr(httpx, "stream", _no_network)
     assert fetch_tab(tmp_path) == tab_dir
+
+
+def test_nemotron_gives_a_reused_uid_its_own_id(tmp_path: Path) -> None:
+    good = [("Lena", "first_name")]
+    rows = [
+        _nemotron_row("same", "Lena called.", "unstructured", good),
+        _nemotron_row("same", "Lena wrote back.", "unstructured", good),
+    ]
+    path = tmp_path / "nemotron" / NEMOTRON_FILES["test"]
+    path.parent.mkdir(parents=True)
+    pq.write_table(pa.Table.from_pylist(rows), path)
+    docs = load_nemotron(tmp_path, "test", n=2, seed=0)
+    assert {doc.id: doc.text for doc in docs} == {
+        "same": "Lena called.",
+        "same-2": "Lena wrote back.",
+    }

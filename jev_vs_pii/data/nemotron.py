@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import random
+from collections import Counter
 from pathlib import Path
 
 import pyarrow.parquet as pq  # type: ignore[import-untyped]  # ships no type hints
@@ -57,11 +58,15 @@ def load_nemotron(data_dir: Path, split: Split, n: int, seed: int) -> list[Doc]:
         filters=[("document_format", "=", "unstructured")],
     )
     usable = []
+    seen: Counter[str] = Counter()
     for row in table.to_pylist():
+        ## The file reuses some uids for different docs: a repeat gets its file-order count.
+        seen[row["uid"]] += 1
+        uid = row["uid"] if seen[row["uid"]] == 1 else f"{row['uid']}-{seen[row['uid']]}"
         ## The spans column is a Python literal (single quotes), not JSON.
         mentions = _MENTIONS.validate_python(ast.literal_eval(row["spans"]))
         if all(row["text"][m.start : m.end] == m.text for m in mentions):
-            usable.append((row["uid"], row["text"], mentions))
+            usable.append((uid, row["text"], mentions))
     sample = random.Random(seed).sample(usable, n)  # nosec B311: reproducible sampling, not security
     return [_to_doc(uid, text, mentions, split) for uid, text, mentions in sample]
 
