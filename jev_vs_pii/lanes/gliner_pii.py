@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Sequence
 
 from jev_vs_pii.schema import Doc, LaneInfo, Prediction, Span
 from jev_vs_pii.taxonomy import Coarse
@@ -14,8 +15,7 @@ _REVISION = "bd23e8ef4425fd04e34c5204ab49ffaa706eae79"
 _THRESHOLD = 0.5
 ## Low enough that the word scores keep near-misses for decoder tuning and calibration.
 _SCORE_FLOOR = 0.05
-## GLiNER reads ~384 tokens; long docs go in overlapping word windows.
-_WINDOW_WORDS = 250
+## Long docs go in windows that fit GLiNER's own token limit, overlapping by this many words.
 _OVERLAP_WORDS = 50
 LABELS: dict[str, Coarse] = {
     "person": "PERSON",
@@ -54,6 +54,9 @@ class GlinerPiiLane:
         from gliner import GLiNER
 
         self._model = GLiNER.from_pretrained(MODEL, revision=_REVISION)
+        ## GLiNER cuts anything past `max_len` of its own tokens (punctuation counts) silently.
+        self._max_tokens: int = self._model.config.max_len
+        self._split = self._model.data_processor.words_splitter
         self.info = LaneInfo(id="gliner_pii", family="ner", model=MODEL)
         ## One throwaway pass so per-doc latency doesn't include warm-up.
         self._model.predict_entities("Warm up with Jane Roe.", list(LABELS))
@@ -61,8 +64,14 @@ class GlinerPiiLane:
     async def predict(self, doc: Doc) -> Prediction:
         """Run each word window, map its entities back to doc offsets, keep the best per range."""
         words = split_words(doc.text)
+        ## A word's tokens include the punctuation before it, which `split_words` trims off.
+        starts = [0, *(word.end for word in words[:-1])]
+        sizes = [
+            len(list(self._split(doc.text[start : word.end])))
+            for start, word in zip(starts, words, strict=True)
+        ]
         candidates: dict[tuple[int, int], Span] = {}
-        for first, last in windows(len(words), _WINDOW_WORDS, _OVERLAP_WORDS):
+        for first, last in windows(sizes, self._max_tokens, _OVERLAP_WORDS):
             offset = words[first].start
             chunk = doc.text[offset : words[last - 1].end]
             for entity in self._model.predict_entities(chunk, list(LABELS), threshold=_SCORE_FLOOR):
@@ -84,11 +93,22 @@ class GlinerPiiLane:
         )
 
 
-def windows(n_words: int, size: int, overlap: int) -> list[tuple[int, int]]:
-    """Half-open word ranges of `size` covering `n_words`, each overlapping the last by `overlap`."""
-    if n_words == 0:
-        return []
-    step = size - overlap
-    return [
-        (start, min(start + size, n_words)) for start in range(0, max(n_words - overlap, 1), step)
-    ]
+def windows(sizes: Sequence[int], budget: int, overlap: int) -> list[tuple[int, int]]:
+    """Half-open word ranges covering every word, each at most `budget` tokens.
+
+    `sizes` is each word's token count. Each window starts `overlap` words before the
+    previous one ended, and always moves forward by at least one word; a single word
+    over budget gets a window of its own.
+    """
+    ranges: list[tuple[int, int]] = []
+    start = 0
+    while start < len(sizes):
+        end, used = start, 0
+        while end < len(sizes) and (end == start or used + sizes[end] <= budget):
+            used += sizes[end]
+            end += 1
+        ranges.append((start, end))
+        if end == len(sizes):
+            break
+        start = max(end - overlap, start + 1)
+    return ranges

@@ -1,0 +1,290 @@
+[
+ {
+  "dataset": "ai4privacy",
+  "lane": "gliner_pii",
+  "reference": "jev_words",
+  "f2_diff": -0.0003364668804234361,
+  "low": -0.017821435463259115,
+  "high": 0.01699382251676152
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "jev_typed",
+  "reference": "jev_words",
+  "f2_diff": -0.012090552995015491,
+  "low": -0.02065412651783687,
+  "high": -0.004043146706780133
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "llm_sayback:deepseek-v4-flash-think",
+  "reference": "jev_words",
+  "f2_diff": 0.10662492451566885,
+  "low": 0.09488753608637292,
+  "high": 0.1181241172081702
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "llm_sayback:deepseek-v4-flash",
+  "reference": "jev_words",
+  "f2_diff": 0.10437035284750662,
+  "low": 0.08636131047347523,
+  "high": 0.12156164063636764
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "llm_sayback:gpt4.1-nano",
+  "reference": "jev_words",
+  "f2_diff": -0.015807543450229056,
+  "low": -0.05132682721157803,
+  "high": 0.016786284672590916
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "llm_sayback:haiku4.5",
+  "reference": "jev_words",
+  "f2_diff": 0.11189231976730474,
+  "low": 0.10099301060937267,
+  "high": 0.1230878659962138
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "llm_sayback:qwen3-235b",
+  "reference": "jev_words",
+  "f2_diff": 0.11044395835193366,
+  "low": 0.09770333288254089,
+  "high": 0.12439956144714155
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "llm_sayback:qwen3-30b",
+  "reference": "jev_words",
+  "f2_diff": 0.09659037098267587,
+  "low": 0.08273598544130986,
+  "high": 0.11079225139119343
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "mask_all",
+  "reference": "jev_words",
+  "f2_diff": -0.3318831382116424,
+  "low": -0.36099346615018324,
+  "high": -0.30254682360346
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "presidio",
+  "reference": "jev_words",
+  "f2_diff": -0.25440684804802804,
+  "low": -0.2787767860052067,
+  "high": -0.22856099507999253
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "privacy_filter",
+  "reference": "jev_words",
+  "f2_diff": 0.02068280815149348,
+  "low": 0.007031827373071295,
+  "high": 0.03311749879301486
+ },
+ {
+  "dataset": "ai4privacy",
+  "lane": "regex",
+  "reference": "jev_words",
+  "f2_diff": -0.30194462151082346,
+  "low": -0.3350613551085588,
+  "high": -0.27092711932747005
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "gliner_pii",
+  "reference": "jev_typed",
+  "f2_diff": 0.07999428897776328,
+  "low": 0.06595860538181052,
+  "high": 0.09350040035806864
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "jev_words",
+  "reference": "jev_typed",
+  "f2_diff": -0.07342555248159055,
+  "low": -0.08225707942779958,
+  "high": -0.06437218237536377
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "llm_sayback:deepseek-v4-flash-think",
+  "reference": "jev_typed",
+  "f2_diff": 0.07119561467488578,
+  "low": 0.048183311151172484,
+  "high": 0.0892072143904034
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "llm_sayback:deepseek-v4-flash",
+  "reference": "jev_typed",
+  "f2_diff": 0.13016253528681965,
+  "low": 0.11677656104073068,
+  "high": 0.143381270586643
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "llm_sayback:gpt4.1-nano",
+  "reference": "jev_typed",
+  "f2_diff": 0.044919088450402156,
+  "low": 0.0263065343225599,
+  "high": 0.06320255377580371
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "llm_sayback:haiku4.5",
+  "reference": "jev_typed",
+  "f2_diff": 0.1416115229820778,
+  "low": 0.12966924580331227,
+  "high": 0.15351887381559817
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "llm_sayback:qwen3-235b",
+  "reference": "jev_typed",
+  "f2_diff": 0.11924522683929162,
+  "low": 0.1037088475351759,
+  "high": 0.1336905507873615
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "llm_sayback:qwen3-30b",
+  "reference": "jev_typed",
+  "f2_diff": 0.10972834782691043,
+  "low": 0.09416246413200617,
+  "high": 0.12456027723424394
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "mask_all",
+  "reference": "jev_typed",
+  "f2_diff": -0.43442355440464553,
+  "low": -0.4502757537877128,
+  "high": -0.4191372612244462
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "presidio",
+  "reference": "jev_typed",
+  "f2_diff": -0.12103784424525699,
+  "low": -0.14294072471177272,
+  "high": -0.09842188738513644
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "privacy_filter",
+  "reference": "jev_typed",
+  "f2_diff": -0.09401418815246176,
+  "low": -0.1204078018941804,
+  "high": -0.06975578877711172
+ },
+ {
+  "dataset": "nemotron",
+  "lane": "regex",
+  "reference": "jev_typed",
+  "f2_diff": -0.3594553778152174,
+  "low": -0.3870645628241294,
+  "high": -0.3353276224545848
+ },
+ {
+  "dataset": "tab",
+  "lane": "gliner_pii",
+  "reference": "jev_typed",
+  "f2_diff": -0.055011014167355765,
+  "low": -0.07562758465758504,
+  "high": -0.034036800915793086
+ },
+ {
+  "dataset": "tab",
+  "lane": "jev_words",
+  "reference": "jev_typed",
+  "f2_diff": -0.10931304548687915,
+  "low": -0.11744247901918113,
+  "high": -0.10096371006035398
+ },
+ {
+  "dataset": "tab",
+  "lane": "llm_sayback:deepseek-v4-flash-think",
+  "reference": "jev_typed",
+  "f2_diff": -0.12280827810855999,
+  "low": -0.1816519100915269,
+  "high": -0.06502119915639973
+ },
+ {
+  "dataset": "tab",
+  "lane": "llm_sayback:deepseek-v4-flash",
+  "reference": "jev_typed",
+  "f2_diff": -0.06730295436037759,
+  "low": -0.11484357892184989,
+  "high": -0.03196785808222519
+ },
+ {
+  "dataset": "tab",
+  "lane": "llm_sayback:gpt4.1-nano",
+  "reference": "jev_typed",
+  "f2_diff": -0.30967087050850234,
+  "low": -0.3622435530323648,
+  "high": -0.2580835361094283
+ },
+ {
+  "dataset": "tab",
+  "lane": "llm_sayback:haiku4.5",
+  "reference": "jev_typed",
+  "f2_diff": -0.016929999881874713,
+  "low": -0.043691890131667376,
+  "high": 0.007805881790261952
+ },
+ {
+  "dataset": "tab",
+  "lane": "llm_sayback:qwen3-235b",
+  "reference": "jev_typed",
+  "f2_diff": -0.06706574040701097,
+  "low": -0.10407934092812768,
+  "high": -0.0343065941063081
+ },
+ {
+  "dataset": "tab",
+  "lane": "llm_sayback:qwen3-30b",
+  "reference": "jev_typed",
+  "f2_diff": -0.13997603903695544,
+  "low": -0.19555913664177232,
+  "high": -0.09145319950417588
+ },
+ {
+  "dataset": "tab",
+  "lane": "mask_all",
+  "reference": "jev_typed",
+  "f2_diff": -0.3841847901504592,
+  "low": -0.4112798324742916,
+  "high": -0.358004704984829
+ },
+ {
+  "dataset": "tab",
+  "lane": "presidio",
+  "reference": "jev_typed",
+  "f2_diff": -0.04556262918983556,
+  "low": -0.0608101998108737,
+  "high": -0.02976956727606047
+ },
+ {
+  "dataset": "tab",
+  "lane": "privacy_filter",
+  "reference": "jev_typed",
+  "f2_diff": -0.2341311286088712,
+  "low": -0.26389280050182146,
+  "high": -0.20624222654562888
+ },
+ {
+  "dataset": "tab",
+  "lane": "regex",
+  "reference": "jev_typed",
+  "f2_diff": -0.2849507711802396,
+  "low": -0.3171623775545297,
+  "high": -0.25240642326252505
+ }
+]

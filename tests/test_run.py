@@ -8,10 +8,16 @@ from pathlib import Path
 
 import pytest
 
-from jev_vs_pii.decode import Threshold, Viterbi
+from jev_vs_pii.decode import DecodeParams, Threshold, Viterbi
 from jev_vs_pii.lanes.mask_all import MaskAllLane
 from jev_vs_pii.lanes.regex import RegexLane
 from jev_vs_pii.metrics.results import human_lane_run, score_lane_run
+from jev_vs_pii.report.export import (
+    curve_records,
+    example_records,
+    headline_records,
+    paired_records,
+)
 from jev_vs_pii.report.markdown import results_markdown
 from jev_vs_pii.report.tables import hits_table, pareto_frontier
 from jev_vs_pii.run import (
@@ -26,7 +32,7 @@ from jev_vs_pii.run import (
     select_docs,
     tune_lane_run,
 )
-from jev_vs_pii.schema import Doc, LaneInfo, LaneRun, Prediction, Span, Split, WordScore
+from jev_vs_pii.schema import Dataset, Doc, LaneInfo, LaneRun, Prediction, Span, Split, WordScore
 from jev_vs_pii.words import split_words
 
 _TEXT = "Mail ann@example.org or call Ann Lee today."
@@ -213,3 +219,32 @@ def test_headline_table_carries_the_caveats_of_the_lanes_in_it() -> None:
     page = results_markdown(llm)
     assert "counts as finding nothing" in page
     assert "Privacy Filter" not in page
+
+
+def test_export_lists_headline_rows_and_pairs_every_lane_with_the_best_jev() -> None:
+    docs = [_doc(i, split="test") for i in range(3)]
+    jev = _lane_run(
+        [_scored(d, {"ann@example.org": 0.9, "Ann": 0.9, "Lee": 0.9}) for d in docs], split="test"
+    )
+    regex = asyncio.run(run_lane(RegexLane(), docs, concurrency=1))
+    regex_run = jev.model_copy(update={"lane": RegexLane.info, "predictions": tuple(regex)})
+    rows = [
+        *score_lane_run(jev, docs, headline=False),
+        *score_lane_run(jev, docs, Threshold(cutoff=0.5)),
+        *score_lane_run(regex_run, docs),
+    ]
+    headline = headline_records(rows)
+    assert sorted(record["lane"] for record in headline) == ["jev_words", "regex"]
+    assert [(p["lane"], p["reference"]) for p in paired_records(rows)] == [("regex", "jev_words")]
+    assert [c["lane"] for c in curve_records(rows)] == ["jev_words"]
+
+
+def test_examples_never_show_ai4privacy_text_and_decode_per_word_lanes() -> None:
+    doc = _doc(0, split="test")
+    jev = _lane_run([_scored(doc, {"Ann": 0.9, "Lee": 0.9})], split="test")
+    hidden = jev.model_copy(update={"dataset": "ai4privacy"})
+    decoders: dict[tuple[str, Dataset], DecodeParams] = {("jev_words", "tab"): Threshold()}
+    examples = example_records([jev, hidden], {"tab": [doc], "ai4privacy": [doc]}, decoders)
+    assert [e["dataset"] for e in examples] == ["tab"]
+    spans = examples[0]["lanes"]["jev_words"]["spans"]
+    assert [doc.text[s["start"] : s["end"]] for s in spans] == ["Ann Lee"]

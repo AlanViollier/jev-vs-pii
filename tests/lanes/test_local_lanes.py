@@ -49,7 +49,16 @@ def test_stray_tags_still_make_spans() -> None:
 def test_windows_cover_every_word_with_overlap(
     n_words: int, expected: list[tuple[int, int]]
 ) -> None:
-    assert windows(n_words, size=250, overlap=50) == expected
+    assert windows([1] * n_words, budget=250, overlap=50) == expected
+
+
+def test_windows_count_tokens_not_words() -> None:
+    ## Words of 2 tokens: a 10-token budget fits 5 of them.
+    assert windows([2] * 12, budget=10, overlap=2) == [(0, 5), (3, 8), (6, 11), (9, 12)]
+
+
+def test_a_word_over_budget_still_gets_a_window() -> None:
+    assert windows([1, 50, 1], budget=10, overlap=1) == [(0, 1), (1, 2), (2, 3)]
 
 
 def test_word_scores_take_the_best_range_touching_each_word() -> None:

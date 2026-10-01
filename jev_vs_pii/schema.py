@@ -226,7 +226,7 @@ class ResultRow(_Frozen):
 
     `decoder` names how per-word scores became spans (`None`: the lane's own spans);
     `headline` marks the one row per lane the results lead with (for per-word lanes, the
-    decoder that won on dev). Hit counts are words: gold words by gold type, dataset label or
+    threshold tuned on dev). Hit counts are words: gold words by gold type, dataset label or
     shape (format / context), predicted words by predicted type, and for TAB the words of
     entities left in clear that the lane masked anyway. `per_doc` feeds paired comparisons and plots;
     `reliability` and `threshold_curve` exist for lanes that score words; the top error

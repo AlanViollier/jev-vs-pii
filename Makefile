@@ -17,7 +17,7 @@ help:
 	@echo "  clean        - Remove caches and build artefacts"
 	@echo "  bench-free   - Free lanes (floor, regex, Presidio, local models) on the three test sets"
 	@echo "  bench-tune   - Every lane on 20 dev docs per dataset (the pilot), then decoder tuning"
-	@echo "  bench        - The full benchmark: free lanes, tuning, every paid lane, scores, chart"
+	@echo "  bench        - The full benchmark: free lanes, tuning, every paid lane, scores, docs/ export"
 
 install:
 	uv sync
@@ -45,7 +45,8 @@ lint:
 ##
 ## Second pass: if `.keywords` exists (gitignored, one regex per line; `#` and
 ## blank lines skipped), grep every tracked file for any term in it and fail.
-## Use for project-local blocklists — names, internal terms, etc.
+## Use for project-local blocklists — names, internal terms, etc. LICENSE is skipped:
+## it names the author on purpose.
 lint-slop:
 	@result=$$(grep -rnE '^[[:space:]]*#+[[:space:]]*[─═=-]{2,}' --include='*.py' \
 	  --exclude-dir=.venv --exclude-dir=.mypy_cache --exclude-dir=.ruff_cache \
@@ -63,7 +64,7 @@ lint-slop:
 	@if [ -f .keywords ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then \
 	  patterns=$$(grep -vE '^[[:space:]]*(#|$$)' .keywords | paste -sd '|' -); \
 	  if [ -n "$$patterns" ]; then \
-	    result=$$(git ls-files -z | xargs -0 grep -inIE "($$patterns)" 2>/dev/null || true); \
+	    result=$$(git ls-files -z -- . ':!LICENSE' | xargs -0 grep -inIE "($$patterns)" 2>/dev/null || true); \
 	    if [ -n "$$result" ]; then \
 	      echo ""; \
 	      echo "  ✗ Forbidden keyword found (.keywords blocklist):"; \
@@ -143,10 +144,10 @@ bench-tune:
 	uv run jev-vs-pii tune $(DEV)
 	uv run jev-vs-pii score $(DEV)
 
-## Scores and chart are written even when a lane failed, so what finished is readable;
+## Scores and the docs/ export are written even when a lane failed, so what finished is readable;
 ## the target still fails so the missing lanes aren't missed.
 bench: bench-tune
 	status=0; for dataset in $(DATASETS); do \
 	  uv run jev-vs-pii run --lanes $(TEST_LANES) --dataset $$dataset --tier full --out $(RUN) || status=1; \
 	done; \
-	uv run jev-vs-pii score $(RUN) && uv run jev-vs-pii report $(RUN) && exit $$status
+	uv run jev-vs-pii score $(RUN) && uv run jev-vs-pii export $(RUN) && exit $$status

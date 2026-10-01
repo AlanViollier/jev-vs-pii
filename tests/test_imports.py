@@ -19,5 +19,5 @@ def test_every_module_imports() -> None:
 def test_cli_lists_commands() -> None:
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in ("fetch", "run", "tune", "score", "report"):
+    for command in ("fetch", "run", "tune", "score", "export"):
         assert command in result.output

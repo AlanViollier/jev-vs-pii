@@ -1,9 +1,10 @@
-"""`jev-vs-pii` command line: fetch · run · tune · score · report."""
+"""`jev-vs-pii` command line: fetch · run · tune · score · export."""
 
 from __future__ import annotations
 
 import asyncio
 import json
+import shutil
 import time
 from collections import defaultdict
 from collections.abc import Sequence
@@ -19,12 +20,19 @@ from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, T
 from jev_vs_pii.clients import ChatClient, DecisionsClient, Ledger, ResponseCache
 from jev_vs_pii.config import AppSettings, get_settings
 from jev_vs_pii.data import fetch_ai4privacy, fetch_nemotron, fetch_tab, load_docs
-from jev_vs_pii.decode import describe
-from jev_vs_pii.exceptions import BudgetExceeded, PiiBenchError, ProviderError
+from jev_vs_pii.decode import DecodeParams, describe
+from jev_vs_pii.exceptions import BudgetExceeded, JevVsPiiError, ProviderError
 from jev_vs_pii.lanes import Lane, LaneDeps, build_lane
 from jev_vs_pii.metrics.results import human_lane_run, score_lane_run
+from jev_vs_pii.report.export import (
+    EXAMPLE_DATASETS,
+    curve_records,
+    example_records,
+    headline_records,
+    paired_records,
+    per_doc_records,
+)
 from jev_vs_pii.report.markdown import results_markdown
-from jev_vs_pii.report.svg import pareto_svg
 from jev_vs_pii.run import (
     headline_decoder,
     load_lane_runs,
@@ -150,19 +158,36 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
 
 
 @app.command()
-def report(run_dir: Annotated[Path, typer.Argument()]) -> None:
-    """Draw the README chart from a scored run: headline F2 vs $/1k docs, one panel per dataset."""
+def export(
+    run_dir: Annotated[Path, typer.Argument(help="A scored test run")],
+    out: Annotated[Path, typer.Option(help="Where results.md and data/ go")] = Path("docs"),
+) -> None:
+    """Copy results.md into `out` and write chart and demo data as small JSON files in `out`/data."""
+    settings = get_settings()
     rows = [
         ResultRow.model_validate(row) for row in json.loads((run_dir / "scores.json").read_text())
     ]
-    panels = []
-    for dataset in ("ai4privacy", "nemotron", "tab"):
-        chosen = [r for r in rows if r.dataset == dataset and r.mode == "word" and r.headline]
-        if chosen:
-            panels.append((f"{dataset} · {chosen[0].split} · word-level F2", chosen))
-    path = run_dir / "pareto.svg"
-    path.write_text(pareto_svg(panels))
-    _console.print(f"→ {path}")
+    decoders: dict[tuple[str, Dataset], DecodeParams] = {}
+    for lane_id, by_dataset in load_tuned(settings.runs_dir / _DECODERS_FILE).items():
+        for dataset, tuned in by_dataset.items():
+            chosen = headline_decoder(tuned)
+            if chosen is not None:
+                decoders[(lane_id, dataset)] = chosen.params
+    docs = {d: load_docs(settings.data_dir, d, "test", settings.seed) for d in EXAMPLE_DATASETS}
+    records = {
+        "headline": headline_records(rows),
+        "paired": paired_records(rows, settings.seed),
+        "curves": curve_records(rows),
+        "per_doc": per_doc_records(rows),
+        "examples": example_records(load_lane_runs(run_dir), docs, decoders),
+    }
+    (out / "data").mkdir(parents=True, exist_ok=True)
+    for name, content in records.items():
+        ## The two per-doc files are big: compact; the rest stays readable.
+        indent = None if name in ("per_doc", "examples") else 1
+        (out / "data" / f"{name}.json").write_text(json.dumps(content, indent=indent) + "\n")
+    shutil.copyfile(run_dir / "results.md", out / "results.md")
+    _console.print(f"→ {out}/results.md · {out}/data/ ({', '.join(records)})")
 
 
 def _deps(settings: AppSettings, ledger: Ledger, cache: ResponseCache) -> LaneDeps:
@@ -245,6 +270,6 @@ def main() -> None:
     """Entry point that turns expected failures into one clean line."""
     try:
         app()
-    except PiiBenchError as error:
+    except JevVsPiiError as error:
         _console.print(f"[bold red]error:[/] {error}")
         raise SystemExit(1) from error
