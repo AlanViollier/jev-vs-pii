@@ -13,9 +13,9 @@ from typing import Any
 
 from jev_vs_pii.decode import DecodeParams, decode
 from jev_vs_pii.metrics.bootstrap import paired_f2_diff
-from jev_vs_pii.metrics.spans import DocCounts
+from jev_vs_pii.metrics.spans import DocCounts, doc_counts
 from jev_vs_pii.schema import Dataset, Doc, Hits, LaneRun, ResultRow, Span
-from jev_vs_pii.words import split_words
+from jev_vs_pii.words import covering_spans, split_words
 
 ## ai4privacy's licence forbids showing its text, so examples come from these only.
 EXAMPLE_DATASETS: tuple[Dataset, ...] = ("tab", "nemotron")
@@ -140,8 +140,9 @@ def example_records(
     Returns
     -------
     list[Record]
-        One record per doc: text, words, gold, cleared, and per lane its spans, per-word
-        probability when it has one, latency, cost, failure and raw answer.
+        One record per doc: text, words, gold and which words it covers, cleared, and per
+        lane its spans, which words they mask, word-level tp / fp / fn, per-word probability
+        when it has one, latency, cost, failure and raw answer.
     """
     records = []
     for dataset in EXAMPLE_DATASETS:
@@ -160,8 +161,13 @@ def example_records(
                     if decoder is not None and prediction.word_scores is not None
                     else prediction.spans
                 )
+                counts = doc_counts(doc, spans, "word")
                 lanes[run.lane.id] = {
                     "spans": [_span(span) for span in spans],
+                    "masked": [span is not None for span in covering_spans(words, spans)],
+                    "tp": counts.tp,
+                    "fp": counts.fp,
+                    "fn": counts.fn,
                     "p_pii": [round(s.p_pii, 3) for s in prediction.word_scores]
                     if prediction.word_scores is not None
                     else None,
@@ -177,6 +183,7 @@ def example_records(
                     "text": doc.text,
                     "words": [[word.start, word.end] for word in words],
                     "gold": [_span(span) for span in doc.gold],
+                    "gold_words": [span is not None for span in covering_spans(words, doc.gold)],
                     "cleared": [_span(span) for span in doc.cleared],
                     "lanes": lanes,
                 }

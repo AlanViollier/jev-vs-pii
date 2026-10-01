@@ -248,3 +248,7 @@ def test_examples_never_show_ai4privacy_text_and_decode_per_word_lanes() -> None
     assert [e["dataset"] for e in examples] == ["tab"]
     spans = examples[0]["lanes"]["jev_words"]["spans"]
     assert [doc.text[s["start"] : s["end"]] for s in spans] == ["Ann Lee"]
+    lane = examples[0]["lanes"]["jev_words"]
+    assert (lane["tp"], lane["fp"], lane["fn"]) == (2, 0, 1)  # the email is missed
+    assert examples[0]["gold_words"] == [False, True, False, False, True, True, False]
+    assert lane["masked"] == [False, False, False, False, True, True, False]
