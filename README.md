@@ -156,6 +156,8 @@ PII detection fits that shape: it is one question per word ("is this personal
 information?"), and what you want back is a probability you can put a threshold on, not
 prose to parse.
 
+<img src="docs/asked.svg" alt="How Jev is asked, on one sentence: each word except stop words gets a question and a probability back; Mr S. Esmer scores 0.87 to 0.95 and is masked, applicants 0.08 and lawyer 0.36 stay, Ankara 0.91 is masked though the annotators left it in clear; threshold 0.5, tuned on dev." width="100%">
+
 Decision models became a category while this was being built. Fastino released
 GLiNER2.5-Decide (open weights, 340M) on September 24, OpenAI announced a Decisions API in
 limited preview on September 29, and Fastino's API-only GLiDE followed on October 1.
