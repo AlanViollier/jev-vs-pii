@@ -66,7 +66,7 @@ Chart-ready numbers: [`docs/data/`](docs/data).
 
 **Jev**
 
-- → **First where context decides.** On TAB, `decision_typed_skip:jev` is 0.032 F2 ahead of Haiku (95% paired interval [0.009, 0.058]) and 0.06 to 0.33 ahead of every method outside Jev and Haiku. The design planned before the run, `decision_typed:jev`, ties Haiku (+0.017, [−0.008, +0.044]). Both recall 72–73% of the context-only PII (Haiku 58%, the second annotator 77%) and, by TAB's own evaluation script, 99.4% of direct identifiers.
+- → **First where context decides.** On TAB, `decision_typed_skip:jev` is 0.032 F2 ahead of Haiku (95% paired interval [0.009, 0.058]) and 0.06 to 0.33 ahead of every other method that isn't Jev; only the second human annotator scores higher (0.860). The design planned before the run, `decision_typed:jev`, ties Haiku (+0.017, [−0.008, +0.044]). Both recall 72–73% of the context-only PII (Haiku 58%, the second annotator 77%) and, by TAB's own evaluation script, 99.4% of direct identifiers.
 - → **It pays in precision.** On ai4privacy and Nemotron-PII a Jev lane has the lowest precision of any non-baseline method (0.36 to 0.63). On TAB, skipping stop words lifts it from 0.65 to 0.74, still under Haiku's 0.83, so Haiku keeps the best TAB F1 (0.793 against 0.778). What it still over-masks most is "applicant", "born" and "application".
 - → **On simpler text, LLMs lead.** On ai4privacy and Nemotron-PII every LLM but GPT-4.1 nano is 0.04 to 0.11 F2 ahead of the best Jev lane; nano ties it on both.
 - → **The fastest paid method, by a lot.** 0.3 to 0.9 s per doc, against 1.3 to 30 s for the LLMs and 75 s for DeepSeek with thinking on.
@@ -88,8 +88,9 @@ Chart-ready numbers: [`docs/data/`](docs/data).
 
 **Jev beats Haiku on TAB. Is it cheaper or faster?** Both, without stop words: $3.08
 against $4.81 per 1,000 judgments, and 0.64 s against 3.6 s per judgment. The typed lane
-that asks about every word is faster too, but 20% more expensive than Haiku. On Nemotron-PII's
-short documents Jev costs 0.3 to 0.5 times what Haiku does, but trails it by 0.11 F2.
+that asks about every word is faster too, but 20% more expensive than Haiku. On
+Nemotron-PII's short documents Jev costs 0.3 to 0.5 times what Haiku does, but trails it
+by 0.11 to 0.14 F2.
 
 **Wasn't the stop-word lane chosen by looking at the test set?** Its idea was. The main
 run's TAB errors showed Jev over-masking words like "his" and "the", so a design that
