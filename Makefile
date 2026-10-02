@@ -121,14 +121,14 @@ DATASETS := ai4privacy tab nemotron
 comma := ,
 space := $(empty) $(empty)
 FREE_LANES := mask_all,regex,presidio,privacy_filter,gliner_pii
-DECISION_LANES := decision_words:jev,decision_typed:jev,decision_typed_skip:jev
+DECISION_LANES := decision_words:jev,decision_typed:jev,decision_typed_skip:jev,decision_fields_skip:jev
 MODELS := qwen3-30b qwen3-235b gpt4.1-nano deepseek-v4-flash deepseek-v4-flash-think haiku4.5
 LLM_LANES := $(subst $(space),$(comma),$(foreach model,$(MODELS),llm_sayback:$(model)))
 ## Dev pilot only, each settled by it: the answer-format study (offsets and tagged rewrites
 ## loop to the output cap, hours on full test sets), decision_bio:jev (no gain over
 ## decision_words:jev at twice the cost) and Llama 3.1 8B (loops under a strict schema on up
 ## to 60% of docs).
-PILOT_ONLY := llm_offsets:qwen3-30b,llm_tagged:qwen3-30b,decision_bio:jev,llm_sayback:llama3-8b
+PILOT_ONLY := llm_offsets:qwen3-30b,llm_tagged:qwen3-30b,decision_bio:jev,decision_fields:jev,llm_sayback:llama3-8b
 TEST_LANES := $(FREE_LANES),$(DECISION_LANES),$(LLM_LANES)
 PILOT_LANES := $(TEST_LANES),$(PILOT_ONLY)
 

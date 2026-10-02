@@ -111,7 +111,7 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
                 "### Every decoder on per-word scores (word level)",
                 results_table(decoded),
             ]
-        if dataset == "tab":
+        if any(row.top_missed or row.top_false_alarms for row in word):
             sections += ["### Most leaked and most over-masked strings", _errors(word)]
     return "\n\n".join(sections) + "\n"
 

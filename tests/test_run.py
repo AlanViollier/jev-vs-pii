@@ -258,3 +258,11 @@ def test_examples_never_show_ai4privacy_text_and_decode_per_word_lanes() -> None
     assert (lane["tp"], lane["fp"], lane["fn"]) == (2, 0, 1)  # the email is missed
     assert examples[0]["gold_words"] == [False, True, False, False, True, True, False]
     assert lane["masked"] == [False, False, False, False, True, True, False]
+
+
+@pytest.mark.parametrize(("split", "shown"), [("dev", True), ("test", False)])
+def test_ai4privacy_strings_stay_out_of_published_results(split: Split, shown: bool) -> None:
+    docs = [_doc(0, split).model_copy(update={"dataset": "ai4privacy"})]
+    run = _lane_run([_scored(docs[0], {})], split).model_copy(update={"dataset": "ai4privacy"})
+    (word, _) = score_lane_run(run, docs, Threshold(cutoff=0.5))
+    assert bool(word.top_missed) is shown

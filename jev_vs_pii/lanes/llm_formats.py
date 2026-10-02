@@ -83,7 +83,11 @@ SAYBACK = AnswerFormat(
     name="sayback",
     instructions=(
         "List every piece of personal information in the text. Copy each one exactly as it "
-        "is written, list each distinct string once, and give its type."
+        "is written, character for character: never reformat, shorten or merge (for '19 and "
+        "20 August 1995', list '19 and 20 August 1995'). Include a title with a name (Mr, Mrs, "
+        "Dr). Give names of people, places and organisations in full, as written. Include "
+        "single-word details the definition lists, such as gender, language or employment "
+        "status. List each distinct string once, and give its type."
     ),
     json_schema=_items_schema({"text": {"type": "string"}}),
     parse=_parse_sayback,

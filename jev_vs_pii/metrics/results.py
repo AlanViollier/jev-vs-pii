@@ -36,6 +36,10 @@ from jev_vs_pii.words import covering_spans, split_words
 
 MODES: tuple[MatchMode, ...] = ("word", "exact")
 
+## Datasets whose licence lets their text appear in published results; ai4privacy's doesn't.
+## Dev results are never published, so they show every dataset's strings.
+_STRINGS_PUBLISHABLE = frozenset({"tab", "nemotron"})
+
 
 def score_lane_run(
     lane_run: LaneRun,
@@ -159,7 +163,8 @@ def _row(
     counts = [doc_counts(doc, pred, mode) for doc, pred in zip(docs, spans, strict=True)]
     ## Curves describe the raw word scores, so they belong to the undecoded row only.
     curves = bool(probs) and decoder is None
-    missed, false_alarms = top_errors(docs, spans) if lane_run.dataset == "tab" else ([], [])
+    shown = lane_run.dataset in _STRINGS_PUBLISHABLE or lane_run.split == "dev"
+    missed, false_alarms = top_errors(docs, spans) if shown else ([], [])
     return ResultRow(
         lane=lane_run.lane,
         decoder=describe(decoder) if decoder else None,
