@@ -37,7 +37,7 @@ in each column in bold, reference rows aside.
 | Presidio (local) | 0.587 | 0.671 | 0.744 | 0.762 |
 | regex | 0.539 | 0.433 | 0.505 | 0.614 |
 | mask everything (floor) | 0.510 | 0.358 | 0.405 | 0.214 |
-| second human annotator (ceiling) | – | – | 0.860 | 0.856 |
+| second human annotator (ceiling; 105 of the 127 judgments) | – | – | 0.860 | 0.856 |
 
 ‡ Added after the main run, from reading its test errors; its threshold is tuned on dev
 like every other (§03). † GLiNER-PII was trained on Nemotron-PII's train split.
@@ -222,7 +222,7 @@ labels exists; all three sets are either synthetic or legal.
 - → **Calibration** (ECE, Brier, reliability bins) for every method that gives a probability per word.
 - → **Cost and time**: $ per 1k docs from each response's reported cost, calls and tokens per doc, latency mean / p50 / p95 per doc (for Jev, whose questions on a long doc go out as parallel calls, the slowest of them). Cached reruns report the original numbers. Local models run on an Apple M1 Pro (GPU where supported).
 - → **Uncertainty**: 95% intervals by resampling whole documents, and paired intervals on the same documents for "is A really better than B".
-- → **Two reference rows**: mask everything (the floor) and TAB's second annotator (the ceiling). F2 leans on recall hard enough that masking everything scores 0.36 to 0.51 depending on how dense the PII is, so read every row against its dataset's floor.
+- → **Two reference rows**: mask everything (the floor) and TAB's second annotator (the ceiling, on the 105 judgments it annotated). F2 leans on recall hard enough that masking everything scores 0.36 to 0.51 depending on how dense the PII is, so read every row against its dataset's floor.
 
 ## 09 · Run it
 
