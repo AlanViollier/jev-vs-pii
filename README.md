@@ -14,7 +14,7 @@ Every method runs alone on the same gold data from three datasets (500 synthetic
 500 business documents, 127 court judgments) and is scored on accuracy, calibration, cost
 and latency. Total spend for everything in this repo: $6.52.
 
-<!-- hero visual: docs/hero.png, made from docs/data/examples.json -->
+<img src="docs/hero.svg" alt="TAB court judgments, word-level F2 against median seconds per document: Jev without stop words 0.81 and Jev typed 0.79, both under a second; Haiku 4.5 0.77 at 3.6 s; second human annotator 0.86." width="100%">
 
 ## 01 · Results
 
