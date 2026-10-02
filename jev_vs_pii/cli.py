@@ -20,7 +20,7 @@ from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, T
 from jev_vs_pii.clients import ChatClient, DecisionsClient, Ledger, ResponseCache
 from jev_vs_pii.config import AppSettings, get_settings
 from jev_vs_pii.data import fetch_ai4privacy, fetch_nemotron, fetch_tab, load_docs
-from jev_vs_pii.decode import DecodeParams, Threshold, describe
+from jev_vs_pii.decode import DecodeParams, describe
 from jev_vs_pii.exceptions import BudgetExceeded, JevVsPiiError, ProviderError
 from jev_vs_pii.lanes import Lane, LaneDeps, build_lane
 from jev_vs_pii.metrics.results import human_lane_run, score_lane_run
@@ -28,7 +28,6 @@ from jev_vs_pii.report.analyses import (
     analyses_markdown,
     answered_by_both,
     context_position,
-    stop_word_skip,
 )
 from jev_vs_pii.report.export import (
     EXAMPLE_DATASETS,
@@ -51,7 +50,6 @@ from jev_vs_pii.run import (
     select_docs,
     tune_lane_run,
 )
-from jev_vs_pii.run.tune import Tuned
 from jev_vs_pii.schema import Dataset, Doc, LaneRun, ResultRow, Split, Tier
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -162,7 +160,7 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
     (run_dir / "scores.json").write_text(
         json.dumps([row.model_dump(mode="json") for row in rows], indent=1)
     )
-    report = f"{results_markdown(rows, seed=settings.seed)}\n{_checks(runs, rows, tuned)}"
+    report = f"{results_markdown(rows, seed=settings.seed)}\n{_checks(runs, rows)}"
     (run_dir / "results.md").write_text(report)
     typer.echo(report)
 
@@ -204,22 +202,13 @@ def export(
 _ANSWERED_PAIRS = [("llm_sayback:deepseek-v4-flash", "llm_sayback:deepseek-v4-flash-think")]
 
 
-def _checks(
-    runs: Sequence[tuple[LaneRun, list[Doc]]], rows: Sequence[ResultRow], tuned: Tuned
-) -> str:
-    """The what-ifs and checks results.md ends with, on the stored runs; no calls made."""
-    ## spaCy comes with the NER extra, which TAB's official scoring already needs.
-    from spacy.lang.en.stop_words import STOP_WORDS
-
-    skips, positions = [], []
-    for lane_run, docs in runs:
-        if not lane_run.lane.id.endswith(":jev"):
-            continue
-        chosen = headline_decoder(tuned.get(lane_run.lane.id, {}).get(lane_run.dataset, []))
-        decoder = chosen.params if chosen is not None else Threshold()
-        key = (lane_run.lane.id, lane_run.dataset)
-        skips.append((*key, stop_word_skip(lane_run, docs, decoder, STOP_WORDS)))
-        positions.append((*key, context_position(lane_run, docs)))
+def _checks(runs: Sequence[tuple[LaneRun, list[Doc]]], rows: Sequence[ResultRow]) -> str:
+    """The checks results.md ends with, on the stored runs; no calls made."""
+    positions = [
+        (lane_run.lane.id, lane_run.dataset, context_position(lane_run, docs))
+        for lane_run, docs in runs
+        if lane_run.lane.id.endswith(":jev")
+    ]
     headline = {(r.lane.id, r.dataset): r for r in rows if r.headline and r.mode == "word"}
     answered = [
         (dataset, a, b, answered_by_both(headline[(a, dataset)], headline[(b, dataset)]))
@@ -227,7 +216,7 @@ def _checks(
         for dataset in sorted({dataset for _, dataset in headline})
         if (a, dataset) in headline and (b, dataset) in headline
     ]
-    return analyses_markdown(skips, positions, answered)
+    return analyses_markdown(positions, answered)
 
 
 def _deps(settings: AppSettings, ledger: Ledger, cache: ResponseCache) -> LaneDeps:

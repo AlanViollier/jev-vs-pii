@@ -4,14 +4,12 @@ from datetime import datetime
 
 import pytest
 
-from jev_vs_pii.decode import Threshold
 from jev_vs_pii.lanes import designs
 from jev_vs_pii.metrics.results import score_lane_run
 from jev_vs_pii.report.analyses import (
     analyses_markdown,
     answered_by_both,
     context_position,
-    stop_word_skip,
 )
 from jev_vs_pii.schema import Doc, LaneInfo, LaneRun, Prediction, Span, WordScore
 from jev_vs_pii.words import split_words
@@ -48,23 +46,6 @@ def _scored(doc: Doc, probs: dict[str, float]) -> Prediction:
     return Prediction(doc_id=doc.id, lane_id="decision_words:jev", spans=(), word_scores=scores)
 
 
-def test_skipping_a_stop_word_drops_its_false_alarm_and_counts_what_was_asked() -> None:
-    doc = _doc()
-    run = _run([_scored(doc, {"ann@example.org": 0.9, "or": 0.9, "Ann": 0.9, "Lee": 0.9})])
-    skip = stop_word_skip(run, [doc], Threshold(), stop_words={"or"})
-    assert skip.before.fp == 1 and skip.after.fp == 0
-    assert skip.after.recall == skip.before.recall == 1.0
-    assert skip.questions_kept == 6 / 7
-    assert skip.gold_words_skipped == 0.0
-
-
-def test_skipping_a_gold_stop_word_leaks_it() -> None:
-    doc = _doc()
-    run = _run([_scored(doc, {"ann@example.org": 0.9, "Ann": 0.9, "Lee": 0.9})])
-    skip = stop_word_skip(run, [doc], Threshold(), stop_words={"ann"})
-    assert skip.after.fn == 1 and skip.gold_words_skipped == 1 / 3
-
-
 def test_context_position_splits_answers_at_the_limit() -> None:
     doc = _doc()
     run = _run([_scored(doc, {"Ann": 0.9})])
@@ -98,13 +79,12 @@ def test_answered_by_both_leaves_out_docs_either_lane_failed() -> None:
     assert result.docs == 1 and result.a.f2 == result.b.f2 == 1.0
 
 
-def test_checks_render_as_three_tables() -> None:
+def test_checks_render_as_two_tables() -> None:
     doc = _doc()
     run = _run([_scored(doc, {"Ann": 0.9})])
     page = analyses_markdown(
-        [("decision_words:jev", "tab", stop_word_skip(run, [doc], Threshold(), {"or"}))],
         [("decision_words:jev", "tab", context_position(run, [doc]))],
         [],
     )
-    assert sum(line.startswith("|---") for line in page.splitlines()) == 3
-    assert "| decision_words:jev | tab | 86% |" in page
+    assert sum(line.startswith("|---") for line in page.splitlines()) == 2
+    assert "| decision_words:jev | tab | 7 |" in page
