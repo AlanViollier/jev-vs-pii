@@ -3,13 +3,12 @@
 How good is [Jev](https://docs.typesafe.ai), a decision model, at finding personal
 information in text, next to the tools used today and to current LLMs?
 
-**Short answer.** On court judgments, where context decides what identifies someone, Jev
-comes first. Asked one typed question per word, with common words like "the" or "his"
-never asked about, it beats Claude Haiku 4.5 by 0.032 F2 (95% paired interval 0.009 to
-0.058), at two thirds of Haiku's cost and under a fifth of its latency. That stop-word
-variant came from reading the test errors (§03); the design planned before the run ties
-Haiku. Jev gets there by masking more than Haiku, and on shorter, simpler text most LLMs
-beat it by 0.04 to 0.11 F2.
+**Short answer.** On court judgments, where context decides what identifies someone, the
+Jev design planned before the run, one typed question per word, ties Claude Haiku 4.5 and
+leads everything else in the main run. A variant found after reading its test errors, which never asks about common
+words like "the" or "his", beats Haiku by 0.032 F2 (95% paired interval 0.009 to 0.058),
+at two thirds of Haiku's cost and under a fifth of its latency (§03). Jev gets there by
+masking more than Haiku, and on shorter, simpler text most LLMs beat it by 0.04 to 0.11 F2.
 
 Every method runs alone on the same gold data from three datasets (500 synthetic texts,
 500 business documents, 127 court judgments) and is scored on accuracy, calibration, cost
@@ -160,11 +159,10 @@ prose to parse.
 Decision models became a category while this was being built. Fastino released
 GLiNER2.5-Decide (open weights, 340M) on September 24, OpenAI announced a Decisions API in
 limited preview on September 29, and Fastino's API-only GLiDE followed on October 1.
-GLiNER2.5-Decide was tried by hand on a few sentences: it classifies whole texts well, but
-asked about one word in context its answers don't separate names from function words, so
-it has no lane. The other two came out too late for this run. A decision model that takes
-a state and typed questions is one `DecisionModel` class away (`lanes/decision.py`), and
-every question design runs on it unchanged.
+None of them is in this run: GLiNER2.5-Decide classifies whole texts, while this benchmark
+asks one question per word, and GLiDE and OpenAI's API came out too late. A decision model
+that takes a state and typed questions is one `DecisionModel` class away
+(`lanes/decision.py`), and every question design runs on it unchanged.
 
 This is a look at what models a personal budget can afford can do. It is not a
 recommendation of what to deploy.
