@@ -126,8 +126,8 @@ MODELS := qwen3-30b qwen3-235b gpt4.1-nano deepseek-v4-flash deepseek-v4-flash-t
 LLM_LANES := $(subst $(space),$(comma),$(foreach model,$(MODELS),llm_sayback:$(model)))
 ## Dev pilot only, each settled by it: the answer-format study (offsets and tagged rewrites
 ## loop to the output cap, hours on full test sets), decision_bio:jev (no gain over
-## decision_words:jev at twice the cost) and Llama 3.1 8B (loops under a strict schema on up
-## to 60% of docs).
+## decision_words:jev at twice the cost), decision_fields:jev (below decision_fields_skip:jev
+## on every dataset) and Llama 3.1 8B (loops under a strict schema on up to 60% of docs).
 PILOT_ONLY := llm_offsets:qwen3-30b,llm_tagged:qwen3-30b,decision_bio:jev,decision_fields:jev,llm_sayback:llama3-8b
 TEST_LANES := $(FREE_LANES),$(DECISION_LANES),$(LLM_LANES)
 PILOT_LANES := $(TEST_LANES),$(PILOT_ONLY)
