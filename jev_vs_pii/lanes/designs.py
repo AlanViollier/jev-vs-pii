@@ -1,12 +1,13 @@
-"""The question designs Jev is tested with. Each asks about every word and turns the answers into a word score.
+"""Question designs for decision models: what to ask about each word, and the word score read back from the answers.
 
-The PII definition sits once in the state; questions point at one word in its context.
+The PII definition sits in the state; questions point at one word in its context.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from functools import cache
 
 from jev_vs_pii.clients import Choice, Noul
 from jev_vs_pii.clients.decisions import ChoiceAnswer, NoulAnswer
@@ -30,11 +31,11 @@ _TYPE_OPTIONS = {
 Question = Noul | Choice
 Answer = NoulAnswer | ChoiceAnswer
 AskWord = Callable[[Doc, Sequence[Word], int], dict[str, Question]]
-ScoreWord = Callable[[Mapping[str, Answer], int], WordScore]
+ScoreWord = Callable[[Mapping[str, Answer], Sequence[Word], int], WordScore]
 
 
 @dataclass(frozen=True)
-class JevDesign:
+class Design:
     """Questions for word i (keys must embed i), and the word score read back from their answers."""
 
     name: str
@@ -87,16 +88,16 @@ def _noul(answers: Mapping[str, Answer], key: str) -> float:
     return answer.noul
 
 
-def _score_is_pii(answers: Mapping[str, Answer], i: int) -> WordScore:
+def _score_is_pii(answers: Mapping[str, Answer], _words: Sequence[Word], i: int) -> WordScore:
     return WordScore(p_pii=_noul(answers, f"p{i}"))
 
 
-def _score_continues(answers: Mapping[str, Answer], i: int) -> WordScore:
+def _score_continues(answers: Mapping[str, Answer], _words: Sequence[Word], i: int) -> WordScore:
     p_continue = _noul(answers, f"c{i}") if i > 0 else None
     return WordScore(p_pii=_noul(answers, f"p{i}"), p_continue=p_continue)
 
 
-def _score_type(answers: Mapping[str, Answer], i: int) -> WordScore:
+def _score_type(answers: Mapping[str, Answer], _words: Sequence[Word], i: int) -> WordScore:
     answer = answers[f"t{i}"]
     if not isinstance(answer, ChoiceAnswer):
         raise ProviderError(f"t{i}: expected a choice answer, got {answer.type}")
@@ -105,8 +106,30 @@ def _score_type(answers: Mapping[str, Answer], i: int) -> WordScore:
     return WordScore(p_pii=p_pii, label_probs=probs)
 
 
-WORDS = JevDesign(name="words", ask=_ask_is_pii, score=_score_is_pii)
-BIO = JevDesign(name="bio", ask=_ask_continues, score=_score_continues)
-TYPED = JevDesign(name="typed", ask=_ask_type, score=_score_type)
+@cache
+def _stop_words() -> frozenset[str]:
+    from spacy.lang.en.stop_words import STOP_WORDS  # the ner extra
 
-DESIGNS: dict[str, JevDesign] = {d.name: d for d in (WORDS, BIO, TYPED)}
+    return frozenset(STOP_WORDS)
+
+
+def skipping_stop_words(design: Design) -> Design:
+    """`design`, except words in spaCy's English stop-word list are never asked about and score 0."""
+
+    def ask(doc: Doc, words: Sequence[Word], i: int) -> dict[str, Question]:
+        return {} if words[i].text.lower() in _stop_words() else design.ask(doc, words, i)
+
+    def score(answers: Mapping[str, Answer], words: Sequence[Word], i: int) -> WordScore:
+        if words[i].text.lower() in _stop_words():
+            return WordScore(p_pii=0.0)
+        return design.score(answers, words, i)
+
+    return Design(name=f"{design.name}_skip", ask=ask, score=score)
+
+
+WORDS = Design(name="words", ask=_ask_is_pii, score=_score_is_pii)
+BIO = Design(name="bio", ask=_ask_continues, score=_score_continues)
+TYPED = Design(name="typed", ask=_ask_type, score=_score_type)
+TYPED_SKIP = skipping_stop_words(TYPED)
+
+DESIGNS: dict[str, Design] = {d.name: d for d in (WORDS, BIO, TYPED, TYPED_SKIP)}

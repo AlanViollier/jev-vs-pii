@@ -1,4 +1,4 @@
-"""Jev and LLM lanes against fake servers: questions per word, batching, parsing, failure policy."""
+"""Decision and LLM lanes against fake servers: questions per word, batching, parsing, failure policy."""
 
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ import pytest
 from jev_vs_pii.clients import ChatClient, DecisionsClient, Ledger, ResponseCache
 from jev_vs_pii.config import AppSettings, ModelSpec
 from jev_vs_pii.exceptions import ConfigError
-from jev_vs_pii.lanes import jev
-from jev_vs_pii.lanes.jev_designs import BIO, TYPED, WORDS, in_context
+from jev_vs_pii.lanes import designs, jev
+from jev_vs_pii.lanes.designs import BIO, TYPED, TYPED_SKIP, WORDS, in_context
 from jev_vs_pii.lanes.registry import LaneDeps, build_lane
 from jev_vs_pii.schema import Doc
 from jev_vs_pii.taxonomy import DEFINITIONS, definition
@@ -104,7 +104,9 @@ def test_context_brackets_the_word_among_its_neighbours() -> None:
     )
 
 
-@pytest.mark.parametrize("lane_id", ["jev_words", "jev_bio", "jev_typed"])
+@pytest.mark.parametrize(
+    "lane_id", ["decision_words:jev", "decision_bio:jev", "decision_typed:jev"]
+)
 def test_jev_lanes_score_every_word_and_decode_the_name(tmp_path: Path, lane_id: str) -> None:
     prediction, jev_server, _ = _predict(tmp_path, lane_id)
     assert prediction.word_scores is not None
@@ -125,8 +127,34 @@ def test_jev_questions_per_word_by_design(tmp_path: Path) -> None:
 
 
 def test_typed_scores_carry_the_type(tmp_path: Path) -> None:
-    prediction, _, _ = _predict(tmp_path, "jev_typed")
+    prediction, _, _ = _predict(tmp_path, "decision_typed:jev")
     assert [span.label for span in prediction.spans] == ["PERSON"]
+
+
+@pytest.fixture
+def _few_stop_words(monkeypatch: pytest.MonkeyPatch) -> None:
+    ## spaCy's list comes with the ner extra, absent in CI.
+    monkeypatch.setattr(designs, "_stop_words", lambda: frozenset({"please", "today"}))
+
+
+@pytest.mark.usefixtures("_few_stop_words")
+def test_skip_never_asks_about_a_stop_word_and_scores_it_zero() -> None:
+    words = split_words(_DOC.text)
+    assert TYPED_SKIP.ask(_DOC, words, 0) == {}
+    assert TYPED_SKIP.score({}, words, 0).p_pii == 0.0
+    assert TYPED_SKIP.ask(_DOC, words, 2) == TYPED.ask(_DOC, words, 2)
+
+
+@pytest.mark.usefixtures("_few_stop_words")
+def test_skip_lane_sends_the_typed_questions_minus_stop_words(tmp_path: Path) -> None:
+    typed, typed_server, _ = _predict(tmp_path / "typed", "decision_typed:jev")
+    skip, skip_server, _ = _predict(tmp_path / "skip", "decision_typed_skip:jev")
+    asked, kept = typed_server.requests[0]["questions"], skip_server.requests[0]["questions"]
+    assert set(asked) - set(kept) == {"t0", "t4"}
+    assert all(kept[key] == asked[key] for key in kept)
+    assert skip_server.requests[0]["state"] == typed_server.requests[0]["state"]
+    assert _found(skip) == _found(typed) == ["Marie Dupont"]
+    assert skip.lane_id == "decision_typed_skip:jev"
 
 
 def test_long_docs_are_split_into_concurrent_calls(
@@ -135,7 +163,7 @@ def test_long_docs_are_split_into_concurrent_calls(
     ## Room for the state plus about two questions per call: 5 words -> 3 calls.
     state_chars = len(json.dumps(f"{definition(_DOC)}\n\nText:\n{_DOC.text}"))
     monkeypatch.setattr(jev, "MAX_INPUT_TOKENS", (state_chars + 260) / 2.4)
-    prediction, jev_server, _ = _predict(tmp_path, "jev_words")
+    prediction, jev_server, _ = _predict(tmp_path, "decision_words:jev")
     assert len(jev_server.requests) == 3
     assert sorted(len(r["questions"]) for r in jev_server.requests) == [1, 2, 2]
     assert prediction.usage.calls == 3
@@ -200,7 +228,17 @@ def test_unusable_answer_counts_as_finding_nothing_and_says_why(
     assert prediction.answer and prediction.provider == "SomeHost"
 
 
-@pytest.mark.parametrize("lane_id", ["llm_sayback:nope", "regex:small", "nope", "llm_sayback"])
+@pytest.mark.parametrize(
+    "lane_id",
+    [
+        "llm_sayback:nope",
+        "regex:small",
+        "nope",
+        "llm_sayback",
+        "decision_words",
+        "decision_words:nope",
+    ],
+)
 def test_bad_lane_ids_are_config_errors(tmp_path: Path, lane_id: str) -> None:
     with pytest.raises(ConfigError):
         build_lane(lane_id, _deps(tmp_path, _Server(_jev_answers), _Server(_chat_answer("{}"))))

@@ -55,7 +55,7 @@ def _doc(i: int, split: Split = "dev", others: tuple[tuple[Span, ...], ...] = ()
 def _lane_run(predictions: list[Prediction], split: Split = "dev") -> LaneRun:
     return LaneRun(
         run_id="r",
-        lane=LaneInfo(id="jev_words", family="jev"),
+        lane=LaneInfo(id="decision_words:jev", family="decision"),
         dataset="tab",
         split=split,
         tier="pilot",
@@ -68,7 +68,7 @@ def _lane_run(predictions: list[Prediction], split: Split = "dev") -> LaneRun:
 def _scored(doc: Doc, probs: dict[str, float]) -> Prediction:
     """A per-word prediction scoring each named word, every other word 0.05."""
     scores = tuple(WordScore(p_pii=probs.get(w.text, 0.05)) for w in split_words(doc.text))
-    return Prediction(doc_id=doc.id, lane_id="jev_words", spans=(), word_scores=scores)
+    return Prediction(doc_id=doc.id, lane_id="decision_words:jev", spans=(), word_scores=scores)
 
 
 def test_tiers_are_prefixes_of_each_other() -> None:
@@ -128,7 +128,11 @@ def test_tuned_decoders_round_trip_and_default_to_empty(tmp_path: Path) -> None:
     path = tmp_path / "decoders.json"
     assert load_tuned(path) == {}
     docs = [_doc(0)]
-    tuned = {"jev_words": {"tab": ranked(tune_lane_run(_lane_run([_scored(docs[0], {})]), docs))}}
+    tuned = {
+        "decision_words:jev": {
+            "tab": ranked(tune_lane_run(_lane_run([_scored(docs[0], {})]), docs))
+        }
+    }
     save_tuned(path, tuned)  # type: ignore[arg-type]  # literal dict keys are a Dataset
     assert load_tuned(path) == tuned
 
@@ -200,7 +204,7 @@ def test_results_page_has_every_section_and_a_paired_comparison() -> None:
         assert section in page
     assert "| regex | -" in page
     assert pareto_frontier([row for row in rows if row.mode == "word"]) == {
-        "jev_words · threshold cutoff=0.5"
+        "decision_words:jev · threshold cutoff=0.5"
     }
 
 
@@ -221,7 +225,7 @@ def test_headline_table_carries_the_caveats_of_the_lanes_in_it() -> None:
     assert "Privacy Filter" not in page
 
 
-def test_export_lists_headline_rows_and_pairs_every_lane_with_the_best_jev() -> None:
+def test_export_lists_headline_rows_and_pairs_every_lane_with_the_best_decision_lane() -> None:
     docs = [_doc(i, split="test") for i in range(3)]
     jev = _lane_run(
         [_scored(d, {"ann@example.org": 0.9, "Ann": 0.9, "Lee": 0.9}) for d in docs], split="test"
@@ -234,21 +238,23 @@ def test_export_lists_headline_rows_and_pairs_every_lane_with_the_best_jev() -> 
         *score_lane_run(regex_run, docs),
     ]
     headline = headline_records(rows)
-    assert sorted(record["lane"] for record in headline) == ["jev_words", "regex"]
-    assert [(p["lane"], p["reference"]) for p in paired_records(rows)] == [("regex", "jev_words")]
-    assert [c["lane"] for c in curve_records(rows)] == ["jev_words"]
+    assert sorted(record["lane"] for record in headline) == ["decision_words:jev", "regex"]
+    assert [(p["lane"], p["reference"]) for p in paired_records(rows)] == [
+        ("regex", "decision_words:jev")
+    ]
+    assert [c["lane"] for c in curve_records(rows)] == ["decision_words:jev"]
 
 
 def test_examples_never_show_ai4privacy_text_and_decode_per_word_lanes() -> None:
     doc = _doc(0, split="test")
     jev = _lane_run([_scored(doc, {"Ann": 0.9, "Lee": 0.9})], split="test")
     hidden = jev.model_copy(update={"dataset": "ai4privacy"})
-    decoders: dict[tuple[str, Dataset], DecodeParams] = {("jev_words", "tab"): Threshold()}
+    decoders: dict[tuple[str, Dataset], DecodeParams] = {("decision_words:jev", "tab"): Threshold()}
     examples = example_records([jev, hidden], {"tab": [doc], "ai4privacy": [doc]}, decoders)
     assert [e["dataset"] for e in examples] == ["tab"]
-    spans = examples[0]["lanes"]["jev_words"]["spans"]
+    spans = examples[0]["lanes"]["decision_words:jev"]["spans"]
     assert [doc.text[s["start"] : s["end"]] for s in spans] == ["Ann Lee"]
-    lane = examples[0]["lanes"]["jev_words"]
+    lane = examples[0]["lanes"]["decision_words:jev"]
     assert (lane["tp"], lane["fp"], lane["fn"]) == (2, 0, 1)  # the email is missed
     assert examples[0]["gold_words"] == [False, True, False, False, True, True, False]
     assert lane["masked"] == [False, False, False, False, True, True, False]

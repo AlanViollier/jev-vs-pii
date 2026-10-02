@@ -65,13 +65,13 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
             results_table(word),
             _caveats(dataset, word),
         ]
-        jev = [row for row in word if row.lane.family == "jev"]
-        if jev:
-            best_jev = max(jev, key=lambda row: row.scores.f2)
+        decision = [row for row in word if row.lane.family == "decision"]
+        if decision:
+            best = max(decision, key=lambda row: row.scores.f2)
             others = [row for row in word if row.lane.family != "human"]
             sections += [
-                f"### Every lane against {best_jev.name}, same docs (paired bootstrap)",
-                paired_table(others, best_jev, seed),
+                f"### Every lane against {best.name}, same docs (paired bootstrap)",
+                paired_table(others, best, seed),
             ]
         sections += [
             "### Format vs context: recall on PII found by its form vs by its meaning",

@@ -1,4 +1,4 @@
-"""Jev asked about every word of a doc, in as few calls as its context allows. Lane ids: `jev_<design>`."""
+"""Jev as a decision model: the doc as state once per call, questions packed into as few calls as fit."""
 
 from __future__ import annotations
 
@@ -6,11 +6,9 @@ import asyncio
 import json
 
 from jev_vs_pii.clients import DecisionsClient
-from jev_vs_pii.decode import DecodeParams, Threshold, decode
-from jev_vs_pii.lanes.jev_designs import Answer, JevDesign, Question
-from jev_vs_pii.schema import Doc, LaneInfo, Prediction, Usage
+from jev_vs_pii.lanes.designs import Answer, Question
+from jev_vs_pii.schema import Doc, Usage
 from jev_vs_pii.taxonomy import definition
-from jev_vs_pii.words import split_words
 
 ## Calls of 64k tokens went through, one past that was refused: stay well under.
 MAX_INPUT_TOKENS = 48_000
@@ -18,23 +16,19 @@ MAX_INPUT_TOKENS = 48_000
 _CHARS_PER_TOKEN = 2.4
 
 
-class JevLane:
-    """Lane `jev_<design>`: questions batched into as few calls as fit, each with the doc as state, run concurrently."""
+class JevModel:
+    """Model key `jev`: OpenRouter's Decisions API, packed calls run concurrently."""
 
-    def __init__(
-        self, client: DecisionsClient, design: JevDesign, decoder: DecodeParams | None = None
-    ) -> None:
-        self.info = LaneInfo(id=f"jev_{design.name}", family="jev", model=client.model)
+    key = "jev"
+
+    def __init__(self, client: DecisionsClient) -> None:
+        self.model_id = client.model
         self._client = client
-        self._design = design
-        self._decoder: DecodeParams = decoder or Threshold()
 
-    async def predict(self, doc: Doc) -> Prediction:
-        """Score every word, then decode spans with this lane's decoder (threshold 0.5 unless tuned)."""
-        words = split_words(doc.text)
-        questions: dict[str, Question] = {}
-        for i in range(len(words)):
-            questions.update(self._design.ask(doc, words, i))
+    async def answer(
+        self, doc: Doc, questions: dict[str, Question]
+    ) -> tuple[dict[str, Answer], Usage]:
+        """Ask every question with the doc as state, in as few calls as `MAX_INPUT_TOKENS` allows."""
         state = state_for(doc)
         results = await asyncio.gather(
             *(self._client.ask(state, batch) for batch in batches(state, questions))
@@ -42,14 +36,7 @@ class JevLane:
         answers: dict[str, Answer] = {}
         for result in results:
             answers.update(result.answers)
-        scores = tuple(self._design.score(answers, i) for i in range(len(words)))
-        return Prediction(
-            doc_id=doc.id,
-            lane_id=self.info.id,
-            spans=tuple(decode(words, scores, self._decoder)),
-            word_scores=scores,
-            usage=Usage.combine([result.usage for result in results]),
-        )
+        return answers, Usage.combine([result.usage for result in results])
 
 
 def state_for(doc: Doc) -> str:

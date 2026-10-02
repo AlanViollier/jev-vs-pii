@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Dataset = Literal["ai4privacy", "tab", "nemotron"]
 Split = Literal["dev", "test"]
 Tier = Literal["smoke", "pilot", "full"]
-Family = Literal["baseline", "human", "rules", "ner", "jev", "llm"]
+Family = Literal["baseline", "human", "rules", "ner", "decision", "llm"]
 MatchMode = Literal["word", "exact"]
 ## Why a generative lane's answer was unusable.
 Failure = Literal["truncated", "unparseable", "misaligned"]

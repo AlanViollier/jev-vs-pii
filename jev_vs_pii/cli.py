@@ -71,7 +71,9 @@ def fetch() -> None:
 def run(
     lanes: Annotated[
         str,
-        typer.Option(help="Comma-separated lane ids, e.g. regex,jev_words,llm_sayback:qwen3-30b"),
+        typer.Option(
+            help="Comma-separated lane ids, e.g. regex,decision_words:jev,llm_sayback:qwen3-30b"
+        ),
     ],
     dataset: Annotated[Dataset, typer.Option()],
     split: Annotated[Split, typer.Option()] = "test",
@@ -211,7 +213,7 @@ def _checks(
 
     skips, positions = [], []
     for lane_run, docs in runs:
-        if lane_run.lane.family != "jev":
+        if not lane_run.lane.id.endswith(":jev"):
             continue
         chosen = headline_decoder(tuned.get(lane_run.lane.id, {}).get(lane_run.dataset, []))
         decoder = chosen.params if chosen is not None else Threshold()

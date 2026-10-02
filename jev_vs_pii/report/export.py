@@ -1,7 +1,7 @@
 """Small JSON files for charts and the demo page, from a scored run. What `docs/data/` holds.
 
 Each file is flat records, ready to hand to a chart tool: `headline` (one row per lane and
-dataset), `paired` (every lane against the best Jev lane, same docs), `curves` (calibration
+dataset), `paired` (every lane against the best decision lane, same docs), `curves` (calibration
 and threshold curves of the per-word lanes), `per_doc` (cost and time against doc length)
 and `examples` (a few whole docs with every lane's spans, for the side-by-side views).
 """
@@ -57,15 +57,15 @@ def headline_records(rows: Sequence[ResultRow]) -> list[Record]:
 
 
 def paired_records(rows: Sequence[ResultRow], seed: int = 0) -> list[Record]:
-    """Every lane's F2 minus the best Jev lane's, on the same docs, with a paired 95% CI."""
+    """Every lane's F2 minus the best decision lane's, on the same docs, with a paired 95% CI."""
     records = []
     headline = _headline(rows)
     for dataset in sorted({row.dataset for row in headline}):
         group = [row for row in headline if row.dataset == dataset]
-        jev = [row for row in group if row.lane.family == "jev"]
-        if not jev:
+        decision = [row for row in group if row.lane.family == "decision"]
+        if not decision:
             continue
-        reference = max(jev, key=lambda row: row.scores.f2)
+        reference = max(decision, key=lambda row: row.scores.f2)
         theirs = {doc.doc_id: doc for doc in reference.per_doc}
         for row in group:
             if row is reference or row.lane.family == "human":
@@ -117,7 +117,7 @@ def per_doc_records(rows: Sequence[ResultRow]) -> list[Record]:
             "latency_s": [round(doc.latency_s, 3) for doc in row.per_doc],
         }
         for row in _headline(rows)
-        if row.lane.family in ("jev", "llm")
+        if row.lane.family in ("decision", "llm")
     ]
 
 

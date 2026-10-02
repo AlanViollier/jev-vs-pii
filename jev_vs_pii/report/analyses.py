@@ -12,8 +12,8 @@ from collections.abc import Collection, Sequence
 from typing import NamedTuple
 
 from jev_vs_pii.decode import DecodeParams, decode
+from jev_vs_pii.lanes.designs import DESIGNS, Question
 from jev_vs_pii.lanes.jev import batches, estimated_tokens, question_json, state_for
-from jev_vs_pii.lanes.jev_designs import DESIGNS, Question
 from jev_vs_pii.metrics.calibration import brier
 from jev_vs_pii.metrics.spans import DocCounts, doc_counts, scores_from_counts
 from jev_vs_pii.schema import Doc, LaneRun, ResultRow, SpanScores
@@ -116,7 +116,7 @@ def context_position(
     Parameters
     ----------
     lane_run:
-        A `jev_<design>` run.
+        A `decision_<design>:jev` run.
     docs:
         The split's gold docs.
     limit:
@@ -127,7 +127,7 @@ def context_position(
     tuple[PositionBucket, PositionBucket]
         Before the limit, past it. A bucket with no words has no Brier score.
     """
-    design = DESIGNS[lane_run.lane.id.removeprefix("jev_")]
+    design = DESIGNS[lane_run.lane.id.partition(":")[0].removeprefix("decision_")]
     by_id = {doc.id: doc for doc in docs}
     sides: dict[bool, tuple[list[float], list[bool]]] = {False: ([], []), True: ([], [])}
     for prediction in lane_run.predictions:
@@ -152,6 +152,9 @@ def context_position(
                 position.setdefault(int(key[1:]), reached * scale)
         gold = covering_spans(words, doc.gold)
         for i, score in enumerate(prediction.word_scores or ()):
+            ## A word a design never asks about has no position, and no answer to judge.
+            if i not in position:
+                continue
             probs, labels = sides[position[i] > limit]
             probs.append(score.p_pii)
             labels.append(gold[i] is not None)

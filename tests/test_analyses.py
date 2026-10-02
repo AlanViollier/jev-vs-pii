@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import pytest
+
 from jev_vs_pii.decode import Threshold
+from jev_vs_pii.lanes import designs
 from jev_vs_pii.metrics.results import score_lane_run
 from jev_vs_pii.report.analyses import (
     analyses_markdown,
@@ -27,10 +30,10 @@ def _doc(i: int = 0) -> Doc:
     )
 
 
-def _run(predictions: list[Prediction], lane: str = "jev_words") -> LaneRun:
+def _run(predictions: list[Prediction], lane: str = "decision_words:jev") -> LaneRun:
     return LaneRun(
         run_id="r",
-        lane=LaneInfo(id=lane, family="llm" if lane.startswith("llm") else "jev"),
+        lane=LaneInfo(id=lane, family="llm" if lane.startswith("llm") else "decision"),
         dataset="tab",
         split="test",
         tier="full",
@@ -42,7 +45,7 @@ def _run(predictions: list[Prediction], lane: str = "jev_words") -> LaneRun:
 
 def _scored(doc: Doc, probs: dict[str, float]) -> Prediction:
     scores = tuple(WordScore(p_pii=probs.get(w.text, 0.05)) for w in split_words(doc.text))
-    return Prediction(doc_id=doc.id, lane_id="jev_words", spans=(), word_scores=scores)
+    return Prediction(doc_id=doc.id, lane_id="decision_words:jev", spans=(), word_scores=scores)
 
 
 def test_skipping_a_stop_word_drops_its_false_alarm_and_counts_what_was_asked() -> None:
@@ -72,6 +75,14 @@ def test_context_position_splits_answers_at_the_limit() -> None:
     assert late.gold_share == 3 / 7
 
 
+def test_context_position_leaves_out_words_never_asked(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(designs, "_stop_words", lambda: frozenset({"or", "today"}))
+    doc = _doc()
+    run = _run([_scored(doc, {"Ann": 0.9})], "decision_typed_skip:jev")
+    early, late = context_position(run, [doc], limit=10**6)
+    assert (early.words, late.words) == (5, 0)
+
+
 def test_answered_by_both_leaves_out_docs_either_lane_failed() -> None:
     docs = [_doc(0), _doc(1)]
     found = (Span(start=5, end=20), Span(start=29, end=36))
@@ -91,9 +102,9 @@ def test_checks_render_as_three_tables() -> None:
     doc = _doc()
     run = _run([_scored(doc, {"Ann": 0.9})])
     page = analyses_markdown(
-        [("jev_words", "tab", stop_word_skip(run, [doc], Threshold(), {"or"}))],
-        [("jev_words", "tab", context_position(run, [doc]))],
+        [("decision_words:jev", "tab", stop_word_skip(run, [doc], Threshold(), {"or"}))],
+        [("decision_words:jev", "tab", context_position(run, [doc]))],
         [],
     )
     assert sum(line.startswith("|---") for line in page.splitlines()) == 3
-    assert "| jev_words | tab | 86% |" in page
+    assert "| decision_words:jev | tab | 86% |" in page
