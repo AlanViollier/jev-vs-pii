@@ -93,11 +93,23 @@ def parse_tagged(source: str, tagged: str) -> tuple[list[Span], int]:
 
 def _mention_pattern(text: str) -> re.Pattern[str]:
     """Case-blind pattern that can't start or end mid-word; between words any spacing, and
-    punctuation next to it, is allowed (`Mr Daniel` finds `Mr. Daniel`)."""
-    body = r"[^\w\s]*\s+[^\w\s]*".join(re.escape(token) for token in text.split())
+    punctuation next to it, is allowed (`Mr Daniel` finds `Mr. Daniel`), and straight and
+    curly quotes match each other (`O'Neill` finds `O’Neill`)."""
+    body = r"[^\w\s]*\s+[^\w\s]*".join(_escape(token) for token in text.split())
     left = r"(?<!\w)" if re.match(r"\w", text.strip()) else ""
     right = r"(?!\w)" if re.search(r"\w$", text.strip()) else ""
     return re.compile(f"{left}{body}{right}", re.IGNORECASE)
+
+
+## Each group matches any of its members: LLMs write straight quotes, legal text curly ones.
+_QUOTE_GROUPS = ("'’‘ʼ", '"“”')
+
+
+def _escape(token: str) -> str:
+    escaped = re.escape(token)
+    for group in _QUOTE_GROUPS:
+        escaped = re.sub(f"[{group}]", f"[{group}]", escaped)
+    return escaped
 
 
 def _strip_tags(tagged: str) -> tuple[str, list[Span]]:

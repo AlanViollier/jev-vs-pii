@@ -14,10 +14,11 @@ import httpx
 import pytest
 
 from jev_vs_pii.clients import ChatClient, DecisionsClient, Ledger, ResponseCache
+from jev_vs_pii.clients.decisions import ChoiceAnswer
 from jev_vs_pii.config import AppSettings, ModelSpec
 from jev_vs_pii.exceptions import ConfigError
 from jev_vs_pii.lanes import designs, jev
-from jev_vs_pii.lanes.designs import BIO, TYPED, TYPED_SKIP, WORDS, in_context
+from jev_vs_pii.lanes.designs import BIO, FIELDS, TYPED, TYPED_SKIP, WORDS, in_context
 from jev_vs_pii.lanes.registry import LaneDeps, build_lane
 from jev_vs_pii.schema import Doc
 from jev_vs_pii.taxonomy import DEFINITIONS, definition
@@ -105,7 +106,8 @@ def test_context_brackets_the_word_among_its_neighbours() -> None:
 
 
 @pytest.mark.parametrize(
-    "lane_id", ["decision_words:jev", "decision_bio:jev", "decision_typed:jev"]
+    "lane_id",
+    ["decision_words:jev", "decision_bio:jev", "decision_typed:jev", "decision_fields:jev"],
 )
 def test_jev_lanes_score_every_word_and_decode_the_name(tmp_path: Path, lane_id: str) -> None:
     prediction, jev_server, _ = _predict(tmp_path, lane_id)
@@ -126,6 +128,21 @@ def test_jev_questions_per_word_by_design(tmp_path: Path) -> None:
     assert typed.criteria["NONE"] == "not personal information"  # type: ignore[union-attr]
 
 
+def test_a_field_name_answer_is_not_pii() -> None:
+    words = split_words(_DOC.text)
+    question = FIELDS.ask(_DOC, words, 2)["t2"]
+    assert list(question.criteria)[:2] == ["NONE", "FIELD_NAME"]  # type: ignore[union-attr]  # FIELDS asks a choice
+    answer = ChoiceAnswer(
+        type="choice",
+        choice="FIELD_NAME",
+        probabilities={"NONE": 0.1, "FIELD_NAME": 0.7, "ID": 0.2},
+        confidence=0.7,
+    )
+    score = FIELDS.score({"t2": answer}, words, 2)
+    assert score.p_pii == pytest.approx(0.2)
+    assert score.label_probs is not None and "FIELD_NAME" not in score.label_probs
+
+
 def test_typed_scores_carry_the_type(tmp_path: Path) -> None:
     prediction, _, _ = _predict(tmp_path, "decision_typed:jev")
     assert [span.label for span in prediction.spans] == ["PERSON"]
@@ -143,6 +160,14 @@ def test_skip_never_asks_about_a_stop_word_and_scores_it_zero() -> None:
     assert TYPED_SKIP.ask(_DOC, words, 0) == {}
     assert TYPED_SKIP.score({}, words, 0).p_pii == 0.0
     assert TYPED_SKIP.ask(_DOC, words, 2) == TYPED.ask(_DOC, words, 2)
+
+
+def test_stop_words_that_can_be_pii_are_still_asked() -> None:
+    pytest.importorskip("spacy")
+    words = split_words("Born on 3 May, aged forty, she moved to the US in the spring.")
+    asked = {w.text for i, w in enumerate(words) if TYPED_SKIP.ask(_DOC, words, i)}
+    assert {"May", "forty", "US"} <= asked
+    assert not {"on", "she", "to", "the", "in"} & asked
 
 
 @pytest.mark.usefixtures("_few_stop_words")

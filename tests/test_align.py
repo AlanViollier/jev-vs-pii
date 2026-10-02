@@ -89,3 +89,11 @@ def test_tagging_any_words_round_trips(words: list[str], data: st.DataObject) ->
     spans, dropped = parse_tagged(source, tagged)
     assert [source[s.start : s.end] for s in spans] == [words[i] for i in picked]
     assert dropped == 0
+
+
+def test_straight_and_curly_quotes_match_each_other() -> None:
+    spans, missing = find_mentions(
+        "before the Court by Mr E. O’Neill, solicitor",
+        [Mention(text="Mr E. O'Neill", label="PERSON")],
+    )
+    assert (spans[0].start, spans[0].end, missing) == (20, 33, 0)
