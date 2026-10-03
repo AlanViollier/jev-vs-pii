@@ -17,6 +17,8 @@ and latency. Total spend for everything in this repo: $11.83.
 
 <img src="docs/hero.svg" alt="TAB court judgments, word-level F2 against median seconds per document: Jev 0.83 at 0.66 s, Haiku 4.5 0.82 at 3.8 s; second human annotator 0.86." width="100%">
 
+<img src="docs/where.svg" alt="Word-level F2 on the three test sets with 95% intervals: ai4privacy Jev 0.91, Haiku 0.95, DeepSeek V4 Flash 0.94; Nemotron-PII Jev 0.90, Haiku 0.94, DeepSeek 0.94; TAB Jev 0.83, Haiku 0.82, DeepSeek 0.75." width="100%">
+
 ## 01 · Results
 
 Word-level F2 on the test sets (recall counts four times as much as precision; §08). Best
@@ -90,7 +92,10 @@ Chart-ready numbers: [`docs/data/`](docs/data).
 
 **Jev ties Haiku on TAB. Is it cheaper or faster?** Both: $3.79 against $5.22 per 1,000
 judgments, and 0.66 s against 3.8 s per judgment. On Nemotron-PII's short documents it
-costs a third of Haiku's price, but trails it by 0.04 F2.
+costs a third of Haiku's price, but trails it by 0.04 F2. Jev bills every word it reads, so its cost per document grows faster with
+length than Haiku's; on these datasets Jev stays cheaper up to about 1,200 words:
+
+<img src="docs/cost.svg" alt="Cents per test document against words in the document, three datasets pooled: Jev's cost rises in a straight line with length, Haiku's flattens; Jev costs more past about 1,200 words." width="100%">
 
 **Weren't the designs changed after seeing results?** Yes, on both sides, and that is how
 the numbers got right. The first full run had three problems that only its errors showed:
