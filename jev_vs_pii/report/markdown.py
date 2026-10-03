@@ -196,7 +196,15 @@ def _errors(rows: Sequence[ResultRow]) -> str:
     for row in sorted(rows, key=lambda row: row.scores.f2, reverse=True):
         if row.lane.family in ("human", "baseline"):
             continue
-        missed = ", ".join(f"{text} ({n})" for text, n in row.top_missed[:8]) or "–"
-        alarms = ", ".join(f"{text} ({n})" for text, n in row.top_false_alarms[:8]) or "–"
+        missed = ", ".join(f"{_short(text)} ({n})" for text, n in row.top_missed[:8]) or "–"
+        alarms = ", ".join(f"{_short(text)} ({n})" for text, n in row.top_false_alarms[:8]) or "–"
         lines.append(f"- → **{row.name}** leaks: {missed}  \n  over-masks: {alarms}")
     return "\n".join(lines)
+
+
+## Synthetic data holds long tokens and cookies; past this they only clutter the table.
+_MAX_SHOWN = 40
+
+
+def _short(text: str) -> str:
+    return text if len(text) <= _MAX_SHOWN else text[: _MAX_SHOWN - 1] + "…"
