@@ -63,6 +63,8 @@ Cost and speed per document, on short text (Nemotron-PII, ~90 words) and long te
 | GPT-4.1 nano | 0.10 | 0.35 | 1.5 | 3.5 |
 | local models (Presidio, Privacy Filter, GLiNER-PII) | 0 | 0 | 0.02 – 1.8 | 0.1 – 2.3 |
 
+<img src="docs/price.svg" alt="Word-level F2 against dollars per 1,000 documents. Short documents: DeepSeek V4 Flash 0.94 at $0.09, Jev 0.90 at $0.50, Haiku 0.94 at $1.51. Court judgments: Jev 0.83 at $3.79, Haiku 0.82 at $5.22, DeepSeek V4 Flash 0.75 at $0.42." width="100%">
+
 Every table behind these (confidence intervals, precision and recall, recall by type,
 calibration, paired tests, the strings each method leaks): [`docs/results.md`](docs/results.md).
 Chart-ready numbers: [`docs/data/`](docs/data).
