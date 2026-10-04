@@ -311,6 +311,8 @@ and `make bench` reruns everything.
 
 ## 05 · Methods
 
+Technical detail for anyone checking the work; the results above don't need it.
+
 | family | lanes | output |
 |---|---|---|
 | reference | `mask_all` (the floor) · `human` (TAB's second annotator against the first) | spans |
@@ -321,7 +323,7 @@ and `make bench` reruns everything.
 
 → **Lanes that read instructions get the same brief** (Jev and the LLMs): the dataset's own annotation guidelines (ai4privacy's and Nemotron-PII's label lists, TAB's published guidelines), then the six types to answer in (`taxonomy.definition`). Regex, Presidio and Privacy Filter run as shipped; GLiNER-PII gets a fixed list of label names.
 
-→ **Jev** gets the whole document once as its state and one question per word, with the word bracketed in a few words of context. Questions are packed into as few calls as fit. Jev's docs give a 32k-token context; calls are packed up to an estimated 48k because larger calls were accepted. Counted in billed tokens, the typed designs went past 32k, mostly on TAB. There, `decision_typed:jev` and `decision_fields_skip:jev` answer slightly worse past 32k (Brier 0.073 against 0.068, and 0.077 against 0.072, on a similar share of PII) and `decision_typed_skip:jev` doesn't (`docs/results.md`, last section).
+→ **Jev** in the results tables is `decision_fields_skip:jev`, the design that scored best on dev. It gets the whole document once as its state and one question per word, with the word bracketed in a few words of context. Questions are packed into as few calls as fit. Jev's docs give a 32k-token context; calls are packed up to an estimated 48k because larger calls were accepted. Counted in billed tokens, the typed designs went past 32k, mostly on TAB. There, `decision_typed:jev` and `decision_fields_skip:jev` answer slightly worse past 32k (Brier 0.073 against 0.068, and 0.077 against 0.072, on a similar share of PII) and `decision_typed_skip:jev` doesn't (`docs/results.md`, last section).
 
 → **Per-word scores become spans through a threshold tuned on dev** (word-level F2, never on test), for every lane that scores words. Three structured decoders (hysteresis, gap closing, Viterbi) were tuned the same way and are reported beside it; on the dev pilot none beat the threshold by more than about 0.02 F2.
 
