@@ -1,9 +1,9 @@
-.PHONY: help install install-dev hooks format lint lint-slop typecheck docstrings test check format-check ci audit clean bench-free bench-tune bench
+.PHONY: help install install-dev hooks format lint lint-slop typecheck docstrings test check format-check ci audit clean bench-free bench-tune bench scan-history
 
 help:
 	@echo "Targets:"
-	@echo "  install      - Install package"
-	@echo "  install-dev  - Install package with dev dependencies"
+	@echo "  install      - Install the package and the local models"
+	@echo "  install-dev  - Same, plus the dev tools"
 	@echo "  hooks        - Install pre-commit + pre-push hooks"
 	@echo "  format       - Format code with ruff"
 	@echo "  lint         - Run ruff checks"
@@ -15,15 +15,16 @@ help:
 	@echo "  ci           - Mirror of GitHub CI: pre-commit run --all-files + pip-audit"
 	@echo "  audit        - Scan dependencies for known CVEs (network; not in 'check')"
 	@echo "  clean        - Remove caches and build artefacts"
+	@echo "  scan-history - Secrets, .keywords and ignored files across every commit"
 	@echo "  bench-free   - Free lanes (floor, regex, Presidio, local models) on the three test sets"
 	@echo "  bench-tune   - Every lane on 20 dev docs per dataset (the pilot), then decoder tuning"
 	@echo "  bench        - The full benchmark: free lanes, tuning, every paid lane, scores, docs/ export"
 
 install:
-	uv sync
+	uv sync --extra ner
 
 install-dev:
-	uv sync --extra dev
+	uv sync --extra dev --extra ner
 
 hooks:
 	uv run pre-commit install
@@ -35,10 +36,10 @@ format:
 lint:
 	uv run ruff check .
 
-## Visual separator comments are forbidden by STYLE.md. Ruff has no built-in
-## rule, so grep enforces it. Patterns caught:
+## Visual separator comments are not allowed. Ruff has no built-in rule, so grep
+## enforces it. Patterns caught:
 ##   # ──────   (bare horizontal separators)
-##   # ── text ──   (named with separator wings — also slop per STYLE.md)
+##   # ── text ──   (named with separator wings)
 ##   # ====   # ----   (ASCII variants)
 ## Regex requires 2+ consecutive [─═=-] chars anywhere after the leading `#`.
 ## Excludes .venv and cache dirs.
@@ -54,7 +55,7 @@ lint-slop:
 	  . 2>/dev/null || true); \
 	if [ -n "$$result" ]; then \
 	  echo ""; \
-	  echo "  ✗ Visual separator comment lines found (forbidden by STYLE.md):"; \
+	  echo "  ✗ Visual separator comment lines found:"; \
 	  echo ""; \
 	  echo "$$result" | sed 's/^/    /'; \
 	  echo ""; \
@@ -89,8 +90,8 @@ test:
 check: format-check lint lint-slop typecheck docstrings test
 
 ## Mirror of GitHub CI — runs every pre-commit hook + pip-audit locally.
-## Use this before pushing when you want to see what CI will see, without
-## committing or installing the hooks (Tier 0 workflow).
+## Use this before pushing to see what CI will see, without committing or installing
+## the hooks.
 ci:
 	uv run pre-commit run --all-files --show-diff-on-failure
 	uv run pip-audit --skip-editable --ignore-vuln PYSEC-2022-42969
@@ -102,10 +103,24 @@ format-check:
 ## fails on transient PyPI advisory-DB hiccups. Runs in CI on every push.
 ##
 ## --skip-editable: don't try to audit our own placeholder package on PyPI.
-## --ignore-vuln PYSEC-2022-42969: the `py` library is abandoned with no fix;
-##   add new ignores here (with a comment) as you discover known-unfixable vulns.
+## --ignore-vuln PYSEC-2022-42969: the `py` library (pulled in by interrogate) is
+##   abandoned with no fix.
 audit:
 	uv run pip-audit --skip-editable --ignore-vuln PYSEC-2022-42969
+
+## Before going public, every commit is checked, not just today's files: secrets
+## (gitleaks, `brew install gitleaks`), the .keywords blocklist over every line ever
+## added (LICENSE skipped), and any file once committed that is now gitignored.
+scan-history:
+	gitleaks git --redact --no-banner .
+	@if [ -f .keywords ]; then \
+	  patterns=$$(grep -vE '^[[:space:]]*(#|$$)' .keywords | paste -sd '|' -); \
+	  result=$$(git log -p --all --format= -- . ':!LICENSE' | grep '^+' | grep -inE "($$patterns)" || true); \
+	  if [ -n "$$result" ]; then echo "  ✗ .keywords match in history:"; echo "$$result" | sed 's/^/    /'; exit 1; fi; \
+	fi
+	@result=$$(git log --all --diff-filter=A --name-only --format= | sort -u | git check-ignore --no-index --stdin || true); \
+	if [ -n "$$result" ]; then echo "  ✗ once committed, now ignored:"; echo "$$result" | sed 's/^/    /'; exit 1; fi
+	@echo "  ✓ history clean"
 
 clean:
 	@rm -rf .mypy_cache .ruff_cache .pytest_cache dist build *.egg-info

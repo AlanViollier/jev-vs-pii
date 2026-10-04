@@ -42,10 +42,10 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.9",
     "mypy>=1.0",
-    "interrogate>=1.7",       # docstring coverage gate (target 60%)
+    "interrogate>=1.7",       # docstring coverage gate, 60%
     "pre-commit>=3.7",
     "types-pyyaml>=6.0.12",
-    "hypothesis>=6.100",      # property tests; drop only if the project has nothing invariant to assert
+    "hypothesis>=6.100",      # property tests
     "pip-audit>=2.7",         # CVE scan against PyPI advisory DB; run via `make audit` + CI
     "nervaluate>=1.2",        # test oracle for exact span matching
 ]
@@ -66,16 +66,10 @@ line-length = 100
 ## UP      — pyupgrade: flag `Union[X, Y]` → `X | Y`, `Dict` → `dict`, etc.
 ## B       — flake8-bugbear: common bug patterns (mutable defaults, unused loop var, etc.).
 ## SIM     — flake8-simplify: code-smell simplifications.
-## BLE     — flag bare/blind except (`except Exception:`) per STYLE.md.
-##           Use `# noqa: BLE001` on the rare legit catch-all at a pipeline boundary.
-## T20     — no `print()` in library modules per STYLE.md.
-##           Per-file ignores below allow `print()` in CLI scripts + benchmarks.
+## BLE     — no blind `except Exception:`; catch what can actually go wrong.
+## T20     — no `print()`; the CLI writes through typer and rich.
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "BLE", "T20"]
 ignore = ["E501", "B008"]  # B008 — pydantic Field(...) at default value is a legit pattern
-
-[tool.ruff.lint.per-file-ignores]
-"scripts/**/*.py" = ["T20"]
-"benchmarks/**/*.py" = ["T20"]
 
 [tool.pyright]
 venvPath = "."

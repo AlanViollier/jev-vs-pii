@@ -4,7 +4,7 @@ repos:
     rev: v5.0.0
     hooks:
       - id: detect-private-key            # SSH / RSA keys in a commit
-      - id: check-added-large-files       # 10 MB: the README's race GIF is ~9 MB
+      - id: check-added-large-files       # 10 MB: the README's race GIF is ~8.7 MB
         args: ['--maxkb=10000']
       - id: check-merge-conflict          # left a `<<<<<<<` marker
       - id: check-yaml                    # all .yaml / .yml parse
@@ -16,7 +16,6 @@ repos:
 
   ## Secrets scanner. Catches API keys, tokens, cloud creds before they leave the laptop.
   ## Complements `detect-private-key` above, which only covers SSH/RSA.
-  ## Allow-list / regex tuning goes in `.gitleaks.toml` at repo root if needed.
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.21.2
     hooks:
@@ -24,15 +23,12 @@ repos:
 
   ## Python security linter (SAST). Catches: hardcoded secrets, weak crypto
   ## (md5/sha1), eval/exec, yaml.load (not safe_load), shell injection patterns.
-  ## Skips:
-  ##   B101 — assert (fine in tests; we run pytest with -O off)
-  ##   B404/B603/B607 — subprocess usage (intentional in our scripts)
-  ## Extend in pyproject.toml [tool.bandit] if needed.
+  ## Skips B101 (assert): tests are made of asserts.
   - repo: https://github.com/PyCQA/bandit
     rev: 1.8.0
     hooks:
       - id: bandit
-        args: ['--skip', 'B101,B404,B603,B607']
+        args: ['--skip', 'B101']
 
   ## Project-level quality gate. Runs ruff format-check, ruff lint (incl. BLE, T20),
   ## lint-slop, mypy, pytest.

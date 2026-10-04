@@ -31,10 +31,6 @@ htmlcov/
 .DS_Store
 *.swp
 
-# Project artifacts that should never enter the repo
-benchmarks/output/
-benchmarks/results/
-
 # Local-only keyword blocklist for `make lint-slop` (one regex per line)
 .keywords
 
