@@ -34,7 +34,7 @@ calibration, cost and latency. Total spend for everything in this repo: $11.83.
 
 **Score against speed, on court judgments**
 
-<img src="docs/hero.svg" alt="TAB court judgments, word-level F2 against median seconds per document: Jev 0.83 at 0.66 s, Haiku 4.5 0.82 at 3.8 s; local models faster but lower, the other LLMs slower and lower." width="100%">
+<img src="docs/hero.svg" alt="TAB court judgments, word-level F2 against median seconds per document: Jev 0.83 at 0.66 s, Haiku 4.5 0.82 at 3.8 s; every other method shown scores lower." width="100%">
 
 <br>
 
