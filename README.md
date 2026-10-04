@@ -259,29 +259,28 @@ provider or a model you host, plus a pipeline built for your own scope, data and
 process. This repo compares the approaches on equal terms; §03 lists what decides
 between them.
 
-## 03 · No single winner
+## 03 · Which approach fits which job
 
-The headline ranks methods on one score. Choosing one for real use turns on things that
-score doesn't capture.
+No method wins everywhere. What fits depends on what you need to catch, how much text,
+and where it may go:
 
-→ **What counts as PII for you.** The local models find the categories they were trained on: Privacy Filter has 8 fixed ones, GLiNER-PII takes a list of label names. Neither reads a policy. TAB asks for a policy: mask what would re-identify the applicant, leave the rest in clear. Changing the scope of a local model means new labels or fine-tuning, and how well it does on labels it wasn't trained for is not measured here. LLMs and Jev read the guidelines as text, so changing the scope means editing a prompt, and that alone moved Qwen3 235B from 0.53 to 0.78 F2 on TAB in the dev pilot.
+| if you need | what fits | what this benchmark shows |
+|---|---|---|
+| a fixed list of formats (emails, phone numbers, IDs), at high volume, without the text leaving your machine | a local model (GLiNER-PII, Presidio) | free per call and fast (0.02 to 2.3 s), but they miss what only context reveals: 21% to 27% of the personal information in judgments gets through |
+| a policy, like "anything that could re-identify this person", on long documents | a decision model or a strong LLM | both read the guidelines as text; Jev lets 11% through against Haiku's 17%, five times faster |
+| few false alarms on short, structured text | a strong LLM | precision 0.89 to 0.96 for Haiku; DeepSeek V4 Flash gets close at $0.09 per 1,000 documents |
+| a dial between leaking and over-masking | a method that scores each word (Jev, GLiNER-PII, Privacy Filter) | move one threshold; an LLM's trade-off only moves by rewording its prompt |
+| an answer for every document | a local model or a decision model | Jev answered every question; the LLMs failed on up to 13 of 127 judgments (loops, cut-offs) |
+| a scope that changes per client or document type | anything that reads instructions (Jev, an LLM) | editing the guidelines moved Qwen3 235B from 0.53 to 0.78 F2 on judgments; a local model needs new labels or retraining |
 
-→ **How reliable the output must be.** A local model returns spans every time, in about the same time, from the same weights. An LLM answer can loop, get cut off, fail to parse, or change when OpenRouter routes the call to another provider; here that happened on up to 13 of 127 TAB documents per model, and each counts as finding nothing. Jev returned a probability for every question it was asked.
-
-→ **Where the text may go.** Local models keep the text on the machine. Every Jev and LLM call here sends it to a third-party API through OpenRouter. No setup here was chosen for GDPR or data-residency terms; real personal data needs a provider and contract that allow it, or a model you host.
-
-→ **Cost at volume.** Local models cost nothing per document but need hardware. Jev is fast and bills input only, but its cost grows with document length. LLM cost follows model size.
-
-→ **Picking your own trade-off.** Methods that score each word (Jev, Privacy Filter, GLiNER-PII) let you move a threshold: fewer leaks for more over-masking, or the reverse.
+Whichever fits, real personal data needs a model you host or one run under a contract that
+allows it; none of the setups here was chosen for that.
 
 The labels are one team's reading of a policy too. Two human experts labelling the same
 judgments reach only 0.86 F2 against each other, and some of what every method is marked
 wrong for (a city the policy leaves visible, "and" inside a court's name, cookie flags in
-Nemotron-PII) is a convention you might not share. Scored against your own definition, every
-number here would move.
-
-A fixed scope at high volume over sensitive text points one way, a scope that changes per
-client or per document type points another. The top row of the table answers neither.
+Nemotron-PII) is a convention you might not share. Scored against your own definition,
+every number here would move.
 
 ## 04 · Why test Jev
 
