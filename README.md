@@ -19,6 +19,13 @@ and latency. Total spend for everything in this repo: $11.83.
 
 <img src="docs/hero.svg" alt="TAB court judgments, word-level F2 against median seconds per document: Jev 0.83 at 0.66 s, Haiku 4.5 0.82 at 3.8 s; second human annotator 0.86." width="100%">
 
+<img src="docs/race.gif" alt="Replay: Jev and Claude Haiku 4.5 reading the same ten test documents side by side, in real time. Jev finishes each in under a second, Haiku in 2 to 5 seconds; the tally ends Jev 10, Haiku 0 on speed and Jev 2, Haiku 8 on F2." width="100%">
+
+Jev and Haiku on the first five test documents of TAB and of Nemotron-PII, replayed from
+the recorded answers in real time. These ten favour Haiku on F2 (8 to 2); over every test
+document, Jev scores higher on 73 of 127 judgments and Haiku on 371 of 500 business
+documents. [Race them yourself](https://alanviollier.github.io/jev-vs-pii/race/).
+
 <img src="docs/where.svg" alt="Word-level F2 on the three test sets with 95% intervals: ai4privacy Jev 0.91, Haiku 0.95, DeepSeek V4 Flash 0.94; Nemotron-PII Jev 0.90, Haiku 0.94, DeepSeek 0.94; TAB Jev 0.83, Haiku 0.82, DeepSeek 0.75." width="100%">
 
 ## 01 · Results
