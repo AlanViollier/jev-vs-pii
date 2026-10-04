@@ -266,3 +266,12 @@ def test_ai4privacy_strings_stay_out_of_published_results(split: Split, shown: b
     run = _lane_run([_scored(docs[0], {})], split).model_copy(update={"dataset": "ai4privacy"})
     (word, _) = score_lane_run(run, docs, Threshold(cutoff=0.5))
     assert bool(word.top_missed) is shown
+
+
+def test_leaks_count_unmasked_gold_words_and_docs_left_with_any() -> None:
+    docs = [_doc(0), _doc(1)]
+    caught = {"ann@example.org": 0.9, "Ann": 0.9, "Lee": 0.9}
+    run = _lane_run([_scored(docs[0], caught), _scored(docs[1], {"ann@example.org": 0.9})])
+    (word, _) = score_lane_run(run, docs, Threshold(cutoff=0.5))
+    assert word.docs_without_leak == 0.5
+    assert word.leaked == pytest.approx(2 / 6)

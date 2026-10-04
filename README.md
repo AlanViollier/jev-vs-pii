@@ -7,7 +7,9 @@ information in text, next to the tools used today and to current LLMs?
 ties Claude Haiku 4.5 for first place (F2 0.834 against 0.819; paired difference +0.015,
 95% interval −0.002 to +0.032) at under a fifth of its latency and about three quarters of
 its cost, and finds more of the context-only personal information than the second human
-annotator. On short synthetic text the larger LLMs stay ahead by 0.02 to 0.04 F2. How Jev
+annotator. It also lets the least through: 11% of the personal information in the
+judgments stays unmasked, against 17% for Haiku and 14% for the second annotator. On short
+synthetic text the larger LLMs stay ahead by 0.02 to 0.04 F2. How Jev
 is asked matters as much as the model: one extra answer option took it from 0.84 to 0.91
 on synthetic text (§02).
 
@@ -46,6 +48,29 @@ in each column in bold, reference rows aside.
 † GLiNER-PII was trained on Nemotron-PII's train split. Jev's question designs and the
 LLM prompt went through a few rounds, each chosen on the dev pilot (§06).
 
+What gets through: the share of the personal-information words left unmasked, then the
+share of documents that came out with nothing left (a failed answer leaks everything).
+Lower is better on the first, higher on the second.
+
+| method | ai4privacy | Nemotron-PII | TAB |
+|---|---|---|---|
+| `decision_fields_skip:jev` (Jev, final design) | 6.7% · 67% | 5.0% · 80% | **11.3%** · 8% |
+| `decision_typed:jev` (Jev, first design) | 6.9% · 72% | **4.2% · 83%** | 16.6% · 6% |
+| Claude Haiku 4.5 | **3.0%** · 90% | 6.3% · 76% | 16.9% · 5% |
+| Qwen3 235B | 3.4% · 88% | 7.8% · 72% | 24.9% · 3% |
+| DeepSeek V4 Flash | 4.1% · **91%** | 5.9% · 75% | 26.3% · 2% |
+| DeepSeek V4 Flash, thinking | 4.4% · 88% | 9.3% · 67% | 37.7% · 6% |
+| Qwen3 30B | 3.9% · **91%** | 7.2% · 73% | 36.8% · 2% |
+| GPT-4.1 nano | 19.3% · 67% | 11.5% · 62% | 46.0% · **15%** |
+| GLiNER-PII (local) | 6.1% · 79% | 13.3% · 43% | 20.9% · 0% |
+| Privacy Filter (local) | 14.3% · 50% | 34.3% · 24% | 49.5% · 0% |
+| Presidio (local) | 45.1% · 15% | 36.8% · 11% | 26.7% · 0% |
+| regex | 51.3% · 18% | 62.1% · 4% | 54.9% · 0% |
+| second human annotator | – | – | 13.7% · 6% |
+
+On judgments almost no document comes out clean for anyone, the second annotator
+included, so read TAB's second number as noise and its first as the result.
+
 Cost and speed per document, on short text (Nemotron-PII, ~90 words) and long text (TAB,
 ~630 words):
 
@@ -73,7 +98,8 @@ Chart-ready numbers: [`docs/data/`](docs/data).
 
 **Jev**
 
-- → **Level with Haiku where context decides.** On TAB, Jev scores 0.834 against Haiku's 0.819 (paired difference +0.015, [−0.002, +0.032]) and is 0.09 to 0.35 ahead of every method that isn't Jev or Haiku. It recalls 81% of the context-only personal information (the second annotator 77%, Haiku 73%) and, by TAB's own evaluation script, 99.6% of direct identifiers (Haiku 91.6%).
+- → **It leaks the least where it matters most.** On court judgments 11.3% of the personal information gets through Jev, against 16.9% for Haiku, 13.7% for the second human annotator and 21% to 55% for everything else. On Nemotron-PII Jev's two designs leak the least too (4.2% and 5.0%). On ai4privacy the LLMs leak less: 3.0% to 4.4% for all but GPT-4.1 nano, against Jev's 6.7%.
+- → **Level with Haiku on F2 where context decides.** On TAB, Jev scores 0.834 against Haiku's 0.819 (paired difference +0.015, [−0.002, +0.032]) and is 0.09 to 0.35 ahead of every method that isn't Jev or Haiku. It recalls 81% of the context-only personal information (the second annotator 77%, Haiku 73%) and, by TAB's own evaluation script, 99.6% of direct identifiers (Haiku 91.6%).
 - → **How it's asked decides how good it is.** The first design asked "what is the bracketed word?" with six types or none. In "Account number: 4417…", Jev answered ID for "Account" and "number": the words are about an ID, which is what the question asked. One extra option, "the name of a kind of information, not the information itself", added 0.073 F2 on ai4privacy, 0.064 on Nemotron-PII and 0.012 on TAB (paired, against the same design without it). Not asking about stop words added 0.009 to 0.041 more. Every step is in §06.
 - → **On short synthetic text, the larger LLMs lead.** Haiku, Qwen3 235B and DeepSeek V4 Flash, with or without thinking, are 0.02 to 0.04 F2 ahead on ai4privacy and Nemotron-PII. Jev ties Qwen3 30B on both, ties GPT-4.1 nano on Nemotron-PII and beats it on ai4privacy, and is ahead of every local model on every dataset.
 - → **It still masks more than the LLMs.** Precision 0.83 / 0.74 / 0.67 on the three datasets, against Haiku's 0.89 / 0.96 / 0.77, so Haiku keeps the best TAB F1 (0.802 against 0.765). On TAB it over-masks "applicant" and "born" most; on Nemotron-PII, field names it still takes for values ("number", "date").
@@ -254,6 +280,7 @@ labels exists; all three sets are either synthetic or legal.
 
 ## 08 · Scoring
 
+- → **Leaks**: the share of gold words left unmasked (1 − recall), and the share of documents with any gold word that came out with none left. A failed answer counts as leaking the whole document.
 - → **Headline: word-level F2.** A word is gold if a gold span overlaps it, predicted if a predicted span does. F2 weights recall: a leak costs more than an over-mask. Word level credits masking street and city as one span, and counts a half-masked name as a leak.
 - → **Format vs context**: recall on each kind of PII, and on TAB, how much of what the annotators left in clear a method masks anyway.
 - → **Exact span match** next to it, the usual NER number.

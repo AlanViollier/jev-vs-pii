@@ -265,3 +265,14 @@ class ResultRow(_Frozen):
     def name(self) -> str:
         """Lane id, with the decoder when it isn't the lane's own."""
         return f"{self.lane.id} · {self.decoder}" if self.decoder else self.lane.id
+
+    @property
+    def leaked(self) -> float:
+        """Share of the gold words left unmasked: what a reader of the output still sees."""
+        return 1.0 - self.scores.recall
+
+    @property
+    def docs_without_leak(self) -> float | None:
+        """Share of the docs holding personal information that came out with none of it left; a failed doc leaks it all."""
+        with_gold = [doc for doc in self.per_doc if doc.tp + doc.fn]
+        return sum(doc.fn == 0 for doc in with_gold) / len(with_gold) if with_gold else None

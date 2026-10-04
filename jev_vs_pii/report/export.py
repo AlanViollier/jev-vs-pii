@@ -40,6 +40,8 @@ def headline_records(rows: Sequence[ResultRow]) -> list[Record]:
             "precision": row.scores.precision,
             "recall": row.scores.recall,
             "f1": row.scores.f1,
+            "leaked": row.leaked,
+            "docs_without_leak": row.docs_without_leak,
             "ece": row.ece,
             "usd_per_1k_docs": float(row.cost.usd_per_1k_docs),
             "latency_p50_s": row.cost.latency_p50_s,

@@ -13,7 +13,7 @@ HitsOf = Callable[[ResultRow], dict[str, Hits]]
 
 
 def results_table(rows: Sequence[ResultRow]) -> str:
-    """One row per lane, best F2 first: F2 with its 95% CI, P, R, F1, calibration, cost, failures.
+    """One row per lane, best F2 first: F2 with its 95% CI, P, R, F1, leaks, calibration, cost, failures.
 
     `frontier` marks lanes no other lane beats on both F2 and cost (the human row aside).
 
@@ -29,14 +29,15 @@ def results_table(rows: Sequence[ResultRow]) -> str:
     """
     frontier = pareto_frontier(rows)
     header = (
-        "| lane | F2 [95% CI] | P | R | F1 | ECE | $/1k docs | p50 s | failed | frontier |\n"
-        "|---|---|---|---|---|---|---|---|---|---|"
+        "| lane | F2 [95% CI] | P | R | F1 | leaked | docs, no leak | ECE | $/1k docs | p50 s "
+        "| failed | frontier |\n"
+        "|---|---|---|---|---|---|---|---|---|---|---|---|"
     )
     lines = [
         f"| {row.name} "
         f"| {row.scores.f2:.3f} [{row.f2_ci[0]:.3f}, {row.f2_ci[1]:.3f}] "
         f"| {row.scores.precision:.3f} | {row.scores.recall:.3f} | {row.scores.f1:.3f} "
-        f"| {_maybe(row.ece)} | {row.cost.usd_per_1k_docs:.3f} | {row.cost.latency_p50_s:.2g} "
+        f"| {row.leaked:.1%} | {_percent(row.docs_without_leak)} | {_maybe(row.ece)} | {row.cost.usd_per_1k_docs:.3f} | {row.cost.latency_p50_s:.2g} "
         f"| {_failures(row)} | {'yes' if row.name in frontier else ''} |"
         for row in _by_f2(rows)
     ]
@@ -176,3 +177,7 @@ def _share(hits: Hits | None) -> str:
 def _failures(row: ResultRow) -> str:
     """Unusable answers, plus items that couldn't be placed in the text when there are any."""
     return f"{row.failed} (+{row.dropped} dropped)" if row.dropped else str(row.failed)
+
+
+def _percent(value: float | None) -> str:
+    return "–" if value is None else f"{value:.0%}"
