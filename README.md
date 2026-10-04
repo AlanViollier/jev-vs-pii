@@ -69,15 +69,14 @@ method's numbers are in §01, the details in §02 and §04.
 
 ## 01 · Results
 
-Word-level F2 on the test sets (recall counts four times as much as precision; §08). Best
-in each column in bold, reference rows aside.
+### Score: how much of the personal information each method finds
+
+Word-level F2 on the test sets: finding personal information counts four times as much as
+not over-masking (§08). Best in each column in bold.
 
 | method | ai4privacy | Nemotron-PII | TAB | TAB F1 |
 |---|---|---|---|---|
-| `decision_fields_skip:jev` (Jev, final design) | 0.911 | 0.898 | **0.834** | 0.765 |
-| `decision_typed_skip:jev` (Jev, without the field-name option) | 0.838 | 0.834 | 0.822 | 0.788 |
-| `decision_typed:jev` (Jev, first design) | 0.829 | 0.792 | 0.790 | 0.731 |
-| `decision_words:jev` (Jev, one yes/no per word) | 0.841 | 0.719 | 0.680 | 0.616 |
+| Jev | 0.911 | 0.898 | **0.834** | 0.765 |
 | Claude Haiku 4.5 | **0.954** | **0.942** | 0.819 | **0.802** |
 | Qwen3 235B | 0.946 | 0.920 | 0.743 | 0.733 |
 | DeepSeek V4 Flash | 0.939 | 0.941 | 0.746 | 0.760 |
@@ -88,44 +87,63 @@ in each column in bold, reference rows aside.
 | Privacy Filter (local) | 0.862 | 0.698 | 0.555 | 0.654 |
 | Presidio (local) | 0.587 | 0.671 | 0.744 | 0.762 |
 | regex | 0.539 | 0.433 | 0.505 | 0.614 |
-| mask everything (floor) | 0.510 | 0.358 | 0.405 | 0.214 |
-| a second human expert, same judgments (ceiling; 105 of the 127) | – | – | 0.860 | 0.856 |
+| mask every word (the floor) | 0.510 | 0.358 | 0.405 | 0.214 |
 
-† GLiNER-PII was trained on Nemotron-PII's train split. Jev's question designs and the
-LLM prompt went through a few rounds, each chosen on the dev pilot (§06).
+Jev is shown with its final question design; the earlier designs and what each change did
+are in §06. † GLiNER-PII was trained on Nemotron-PII's train split.
 
-What gets through: the share of the personal-information words left unmasked, then the
-share of documents that came out with nothing left (a failed answer leaks everything).
-Lower is better on the first, higher on the second.
+### What gets through: personal information left unmasked
+
+The share of personal-information words each method left unmasked. Lower is better.
 
 | method | ai4privacy | Nemotron-PII | TAB |
 |---|---|---|---|
-| `decision_fields_skip:jev` (Jev, final design) | 6.7% · 67% | 5.0% · 80% | **11.3%** · 8% |
-| `decision_typed:jev` (Jev, first design) | 6.9% · 72% | **4.2% · 83%** | 16.6% · 6% |
-| Claude Haiku 4.5 | **3.0%** · 90% | 6.3% · 76% | 16.9% · 5% |
-| Qwen3 235B | 3.4% · 88% | 7.8% · 72% | 24.9% · 3% |
-| DeepSeek V4 Flash | 4.1% · **91%** | 5.9% · 75% | 26.3% · 2% |
-| DeepSeek V4 Flash, thinking | 4.4% · 88% | 9.3% · 67% | 37.7% · 6% |
-| Qwen3 30B | 3.9% · **91%** | 7.2% · 73% | 36.8% · 2% |
-| GPT-4.1 nano | 19.3% · 67% | 11.5% · 62% | 46.0% · **15%** |
-| GLiNER-PII (local) | 6.1% · 79% | 13.3% · 43% | 20.9% · 0% |
-| Privacy Filter (local) | 14.3% · 50% | 34.3% · 24% | 49.5% · 0% |
-| Presidio (local) | 45.1% · 15% | 36.8% · 11% | 26.7% · 0% |
-| regex | 51.3% · 18% | 62.1% · 4% | 54.9% · 0% |
-| a second human expert | – | – | 13.7% · 6% |
+| Jev | 6.7% | **5.0%** | **11.3%** |
+| Claude Haiku 4.5 | **3.0%** | 6.3% | 16.9% |
+| Qwen3 235B | 3.4% | 7.8% | 24.9% |
+| DeepSeek V4 Flash | 4.1% | 5.9% | 26.3% |
+| DeepSeek V4 Flash, thinking | 4.4% | 9.3% | 37.7% |
+| Qwen3 30B | 3.9% | 7.2% | 36.8% |
+| GPT-4.1 nano | 19.3% | 11.5% | 46.0% |
+| GLiNER-PII (local) | 6.1% | 13.3% | 20.9% |
+| Privacy Filter (local) | 14.3% | 34.3% | 49.5% |
+| Presidio (local) | 45.1% | 36.8% | 26.7% |
+| regex | 51.3% | 62.1% | 54.9% |
 
-On judgments almost no document comes out clean for anyone, the second human expert
-included, so read TAB's second number as noise and its first as the result.
+### Documents with no personal information left
 
-Cost and speed per document, on short text (Nemotron-PII, ~90 words) and long text (TAB,
-~630 words):
+The share of documents in which every personal-information word was masked. Higher is
+better.
+
+| method | ai4privacy | Nemotron-PII | TAB |
+|---|---|---|---|
+| Jev | 67% | **80%** | 8% |
+| Claude Haiku 4.5 | 90% | 76% | 5% |
+| Qwen3 235B | 88% | 72% | 3% |
+| DeepSeek V4 Flash | **91%** | 75% | 2% |
+| DeepSeek V4 Flash, thinking | 88% | 67% | 6% |
+| Qwen3 30B | **91%** | 73% | 2% |
+| GPT-4.1 nano | 67% | 62% | 15% |
+| GLiNER-PII (local) | 79% | 43% | 0% |
+| Privacy Filter (local) | 50% | 24% | 0% |
+| Presidio (local) | 15% | 11% | 0% |
+| regex | 18% | 4% | 0% |
+
+A court judgment runs to about 600 words, so one missed detail is enough to leave it
+unclean: almost none come out fully masked, for any method.
+
+None of these numbers is absolute. The labels are one team's reading of what counts as
+personal: some of what Jev and the others are marked wrong for is arguably personal (a
+city, "born" next to a birth date), and some of what counts as a leak is a labelling
+convention ("and" inside a court's name, cookie flags). More in §04.
+
+### Cost and speed
+
+Per document, on short text (Nemotron-PII, ~90 words) and long text (TAB, ~630 words).
 
 | method | $ per 1k docs, short | $ per 1k docs, long | median s per doc, short | median s per doc, long |
 |---|---|---|---|---|
-| `decision_fields_skip:jev` | 0.50 | 3.79 | 0.47 | 0.66 |
-| `decision_typed_skip:jev` | 0.42 | 3.12 | 0.37 | 0.67 |
-| `decision_typed:jev` | 0.70 | 5.76 | 0.37 | 0.89 |
-| `decision_words:jev` | 0.16 | 1.18 | 0.29 | 0.61 |
+| Jev | 0.50 | 3.79 | 0.47 | 0.66 |
 | Claude Haiku 4.5 | 1.51 | 5.22 | 1.8 | 3.8 |
 | Qwen3 235B | 0.18 | 0.74 | 14 | 19 |
 | DeepSeek V4 Flash | 0.09 | 0.42 | 2.1 | 7.0 |
@@ -133,6 +151,8 @@ Cost and speed per document, on short text (Nemotron-PII, ~90 words) and long te
 | Qwen3 30B | 0.09 | 0.50 | 3.2 | 21 |
 | GPT-4.1 nano | 0.10 | 0.35 | 1.5 | 3.5 |
 | local models (Presidio, Privacy Filter, GLiNER-PII) | 0 | 0 | 0.02 – 1.8 | 0.1 – 2.3 |
+
+### Price against score
 
 <img src="docs/price.svg" alt="Word-level F2 against dollars per 1,000 documents. Short documents: DeepSeek V4 Flash 0.94 at $0.09, Jev 0.90 at $0.50, Haiku 0.94 at $1.51. Court judgments: Jev 0.83 at $3.79, Haiku 0.82 at $5.22, DeepSeek V4 Flash 0.75 at $0.42." width="100%">
 
