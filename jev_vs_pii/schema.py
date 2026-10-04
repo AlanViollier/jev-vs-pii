@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Dataset = Literal["ai4privacy", "tab", "nemotron"]
 Split = Literal["dev", "test"]
 Tier = Literal["smoke", "pilot", "full"]
-Family = Literal["baseline", "human", "rules", "ner", "decision", "llm"]
+Family = Literal["baseline", "rules", "ner", "decision", "llm"]
 MatchMode = Literal["word", "exact"]
 ## Why a generative lane's answer was unusable.
 Failure = Literal["truncated", "unparseable", "misaligned"]
@@ -58,7 +58,7 @@ class Span(_Frozen):
 
 
 class Doc(_Frozen):
-    """One gold document. `gold` is the primary annotation; `other_annotators` holds TAB's extra ones.
+    """One gold document. `gold` is what must be masked.
 
     `subject` is the person TAB asks to protect; its gold only masks what re-identifies them.
     `cleared` holds entities the annotator marked and decided need no masking (TAB's NO_MASK):
@@ -70,7 +70,6 @@ class Doc(_Frozen):
     split: Split
     text: str
     gold: tuple[Span, ...]
-    other_annotators: tuple[tuple[Span, ...], ...] = ()
     subject: str | None = None
     cleared: tuple[Span, ...] = ()
 

@@ -17,7 +17,7 @@ def top_errors(
     Parameters
     ----------
     docs:
-        Gold docs. Only call this on data whose text may be shown (TAB).
+        Gold docs. Only call this on data whose text may be shown (TAB, Nemotron-PII).
     preds:
         Predicted spans per doc, same order as `docs`.
     n:

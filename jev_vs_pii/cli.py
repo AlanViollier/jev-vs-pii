@@ -6,7 +6,6 @@ import asyncio
 import json
 import shutil
 import time
-from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
@@ -23,7 +22,7 @@ from jev_vs_pii.data import fetch_ai4privacy, fetch_nemotron, fetch_tab, load_do
 from jev_vs_pii.decode import DecodeParams, describe
 from jev_vs_pii.exceptions import BudgetExceeded, JevVsPiiError, ProviderError
 from jev_vs_pii.lanes import Lane, LaneDeps, build_lane
-from jev_vs_pii.metrics.results import human_lane_run, score_lane_run
+from jev_vs_pii.metrics.results import score_lane_run
 from jev_vs_pii.report.analyses import (
     analyses_markdown,
     answered_by_both,
@@ -110,7 +109,8 @@ def tune(run_dir: Annotated[Path, typer.Argument(help="A run on the dev split")]
     path = settings.runs_dir / _DECODERS_FILE
     tuned = load_tuned(path)
     for lane_run, docs in _with_docs(load_lane_runs(run_dir), settings):
-        if lane_run.split != "dev" or not lane_run.predictions[0].word_scores:
+        ## Only per-word lanes have scores to tune on; an empty run has nothing to tune.
+        if lane_run.split != "dev" or any(p.word_scores is None for p in lane_run.predictions):
             continue
         decoders = ranked(tune_lane_run(lane_run, docs))
         tuned.setdefault(lane_run.lane.id, {})[lane_run.dataset] = decoders
@@ -129,9 +129,6 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
     settings = get_settings()
     tuned = load_tuned(settings.runs_dir / _DECODERS_FILE)
     rows: list[ResultRow] = []
-    ## The human row is scored on the docs the lanes ran on, so smoke and pilot compare like for like.
-    ran: dict[tuple[Dataset, Split], set[str]] = defaultdict(set)
-    split_docs: dict[tuple[Dataset, Split], list[Doc]] = {}
     runs = _with_docs(load_lane_runs(run_dir), settings)
     for lane_run, docs in runs:
         decoders = tuned.get(lane_run.lane.id, {}).get(lane_run.dataset, [])
@@ -147,15 +144,6 @@ def score(run_dir: Annotated[Path, typer.Argument()]) -> None:
                 seed=settings.seed,
                 headline=decoder is chosen,
                 data_dir=settings.data_dir,
-            )
-        key = (lane_run.dataset, lane_run.split)
-        ran[key] |= {prediction.doc_id for prediction in lane_run.predictions}
-        split_docs[key] = docs
-    for key, doc_ids in ran.items():
-        human = human_lane_run([doc for doc in split_docs[key] if doc.id in doc_ids])
-        if human is not None:
-            rows += score_lane_run(
-                human, split_docs[key], seed=settings.seed, data_dir=settings.data_dir
             )
     (run_dir / "scores.json").write_text(
         json.dumps([row.model_dump(mode="json") for row in rows], indent=1)

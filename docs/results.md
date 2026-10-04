@@ -438,13 +438,12 @@ over-masks: today (18), daily (12), the day (5), annual (4), 2024 (3), liverpool
 → **regex** leaks: usa (40), full-time (19), male (16), female (15), english (14), high school (13), su su (13), james (11)  
 over-masks: 123456 (2), 120/80 (1), 80-100 (1), 12345678 (1), 555-555-5555 (1), 095514669851365 (1), 2026r01 (1), suptick-20230219-001 (1)
 
-## tab · test (105 docs, 127 docs)
+## tab · test (127 docs)
 
 ### Word level (headline; per-word lanes use a threshold tuned on dev)
 
 | lane | F2 [95% CI] | P | R | F1 | leaked | docs, no leak | ECE | $/1k docs | p50 s | failed | frontier |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| human | 0.860 [0.840, 0.879] | 0.849 | 0.863 | 0.856 | 13.7% | 6% | – | 0.000 | 0 | 0 |  |
 | decision_fields_skip:jev · threshold cutoff=0.4 | 0.834 [0.821, 0.845] | 0.672 | 0.887 | 0.765 | 11.3% | 8% | 0.045 | 3.787 | 0.66 | 0 | yes |
 | decision_typed_skip:jev · threshold cutoff=0.5 | 0.822 [0.806, 0.836] | 0.738 | 0.845 | 0.788 | 15.5% | 6% | 0.049 | 3.120 | 0.67 | 0 | yes |
 | llm_sayback:haiku4.5 | 0.819 [0.801, 0.837] | 0.775 | 0.831 | 0.802 | 16.9% | 5% | – | 5.219 | 3.8 | 0 (+4 dropped) |  |
@@ -488,7 +487,6 @@ over-masks: 123456 (2), 120/80 (1), 80-100 (1), 12345678 (1), 555-555-5555 (1), 
 
 | lane | format recall | context recall | gap | left-in-clear masked (lower is better) |
 |---|---|---|---|---|
-| human | 0.93 | 0.77 | +0.16 | 0.21 |
 | decision_fields_skip:jev · threshold cutoff=0.4 | 0.94 | 0.81 | +0.14 | 0.39 |
 | decision_typed_skip:jev · threshold cutoff=0.5 | 0.93 | 0.73 | +0.20 | 0.25 |
 | llm_sayback:haiku4.5 | 0.90 | 0.73 | +0.17 | 0.37 |
@@ -529,7 +527,6 @@ over-masks: 123456 (2), 120/80 (1), 80-100 (1), 12345678 (1), 555-555-5555 (1), 
 
 | lane | DATETIME | ID | LOCATION | OTHER | PERSON |
 |---|---|---|---|---|---|
-| human | 0.94 | 0.98 | 0.91 | 0.58 | 0.91 |
 | decision_fields_skip:jev · threshold cutoff=0.4 | 0.97 | 0.99 | 0.90 | 0.57 | 0.98 |
 | decision_typed_skip:jev · threshold cutoff=0.5 | 0.96 | 0.99 | 0.88 | 0.40 | 0.98 |
 | llm_sayback:haiku4.5 | 0.93 | 0.82 | 0.91 | 0.57 | 0.83 |
@@ -570,7 +567,6 @@ over-masks: 123456 (2), 120/80 (1), 80-100 (1), 12345678 (1), 555-555-5555 (1), 
 
 | lane | DIRECT | QUASI |
 |---|---|---|
-| human | 0.99 | 0.85 |
 | decision_fields_skip:jev · threshold cutoff=0.4 | 0.99 | 0.88 |
 | decision_typed_skip:jev · threshold cutoff=0.5 | 0.99 | 0.84 |
 | llm_sayback:haiku4.5 | 0.81 | 0.83 |
@@ -591,7 +587,6 @@ over-masks: 123456 (2), 120/80 (1), 80-100 (1), 12345678 (1), 555-555-5555 (1), 
 
 | lane | CODE | DATETIME | DEM | LOC | MISC | ORG | PERSON | QUANTITY |
 |---|---|---|---|---|---|---|---|---|
-| human | 0.98 | 0.94 | 0.43 | 0.91 | 0.34 | 0.66 | 0.91 | 0.65 |
 | decision_fields_skip:jev · threshold cutoff=0.4 | 0.99 | 0.97 | 0.70 | 0.90 | 0.20 | 0.64 | 0.98 | 0.48 |
 | decision_typed_skip:jev · threshold cutoff=0.5 | 0.99 | 0.96 | 0.63 | 0.88 | 0.13 | 0.43 | 0.98 | 0.29 |
 | llm_sayback:haiku4.5 | 0.82 | 0.93 | 0.31 | 0.91 | 0.41 | 0.69 | 0.83 | 0.43 |
@@ -612,7 +607,6 @@ over-masks: 123456 (2), 120/80 (1), 80-100 (1), 12345678 (1), 555-555-5555 (1), 
 
 | lane | CONTACT | DATETIME | ID | LOCATION | OTHER | PERSON |
 |---|---|---|---|---|---|---|
-| human | – | 0.97 | 1.00 | 0.74 | 0.50 | 0.94 |
 | decision_fields_skip:jev · threshold cutoff=0.4 | 0.00 | 0.88 | 0.69 | 0.43 | 0.32 | 0.74 |
 | decision_typed_skip:jev · threshold cutoff=0.5 | – | 0.89 | 0.56 | 0.52 | 0.36 | 0.78 |
 | llm_sayback:haiku4.5 | – | 0.96 | 0.89 | 0.50 | 0.42 | 0.92 |
@@ -629,7 +623,6 @@ over-masks: 123456 (2), 120/80 (1), 80-100 (1), 12345678 (1), 555-555-5555 (1), 
 
 | lane | F2 [95% CI] | P | R | F1 | leaked | docs, no leak | ECE | $/1k docs | p50 s | failed | frontier |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| human | 0.810 [0.785, 0.832] | 0.808 | 0.810 | 0.809 | 19.0% | 3% | – | 0.000 | 0 | 0 |  |
 | llm_sayback:haiku4.5 | 0.734 [0.709, 0.759] | 0.672 | 0.752 | 0.710 | 24.8% | 4% | – | 5.219 | 3.8 | 0 (+4 dropped) | yes |
 | llm_sayback:deepseek-v4-flash | 0.660 [0.619, 0.698] | 0.657 | 0.661 | 0.659 | 33.9% | 2% | – | 0.418 | 7 | 2 (+11 dropped) | yes |
 | llm_sayback:qwen3-235b | 0.644 [0.603, 0.682] | 0.617 | 0.651 | 0.634 | 34.9% | 0% | – | 0.736 | 19 | 2 (+17 dropped) |  |

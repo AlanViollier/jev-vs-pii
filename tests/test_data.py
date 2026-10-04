@@ -120,9 +120,6 @@ def test_tab_gold_is_masked_mentions_of_first_annotator(tmp_path: Path) -> None:
     assert [doc.text[s.start : s.end] for s in doc.gold] == ["Ivo Brandt", "1961", "Tromsø"]
     assert [s.label for s in doc.gold] == ["PERSON", "DATETIME", "LOCATION"]
     assert doc.subject == "Ivo Brandt"
-    assert [[doc.text[s.start : s.end] for s in spans] for spans in doc.other_annotators] == [
-        ["Ivo Brandt"]
-    ]
     assert [doc.text[s.start : s.end] for s in doc.cleared] == ["Court of Appeal"]
     assert [s.detail for s in doc.gold] == ["DIRECT PERSON", "QUASI DATETIME", "QUASI LOC"]
 

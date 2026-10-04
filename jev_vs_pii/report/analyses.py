@@ -13,7 +13,8 @@ from typing import NamedTuple
 from jev_vs_pii.lanes.designs import DESIGNS, Question
 from jev_vs_pii.lanes.jev import batches, estimated_tokens, question_json, state_for
 from jev_vs_pii.metrics.calibration import brier
-from jev_vs_pii.metrics.spans import DocCounts, scores_from_counts
+from jev_vs_pii.metrics.spans import scores_from_counts
+from jev_vs_pii.report.tables import aligned_counts, fmt
 from jev_vs_pii.schema import Doc, LaneRun, ResultRow, SpanScores
 from jev_vs_pii.words import covering_spans, split_words
 
@@ -96,17 +97,8 @@ def context_position(
 
 def answered_by_both(a: ResultRow, b: ResultRow) -> AnsweredByBoth:
     """Word-level scores of two rows on the docs where neither lane's answer failed."""
-    theirs = {doc.doc_id: doc for doc in b.per_doc}
-    shared = [
-        d for d in a.per_doc if d.doc_id in theirs and not (d.failed or theirs[d.doc_id].failed)
-    ]
-    return AnsweredByBoth(
-        docs=len(shared),
-        a=scores_from_counts(DocCounts(d.tp, d.fp, d.fn) for d in shared),
-        b=scores_from_counts(
-            DocCounts(theirs[d.doc_id].tp, theirs[d.doc_id].fp, theirs[d.doc_id].fn) for d in shared
-        ),
-    )
+    mine, theirs = aligned_counts(a, b, answered_only=True)
+    return AnsweredByBoth(docs=len(mine), a=scores_from_counts(mine), b=scores_from_counts(theirs))
 
 
 def analyses_markdown(
@@ -119,9 +111,9 @@ def analyses_markdown(
         "| words past | Brier past | PII share past |",
         "|---|---|---|---|---|---|---|---|",
         *(
-            f"| {lane} | {dataset} | {early.words:,} | {_maybe(early.brier)} "
-            f"| {_maybe(early.gold_share)} | {late.words:,} | {_maybe(late.brier)} "
-            f"| {_maybe(late.gold_share)} |"
+            f"| {lane} | {dataset} | {early.words:,} | {fmt(early.brier)} "
+            f"| {fmt(early.gold_share)} | {late.words:,} | {fmt(late.brier)} "
+            f"| {fmt(late.gold_share)} |"
             for lane, dataset, (early, late) in positions
         ),
     ]
@@ -151,7 +143,3 @@ def _bucket(probs: list[float], labels: list[bool]) -> PositionBucket:
     return PositionBucket(
         words=len(probs), brier=brier(probs, labels), gold_share=sum(labels) / len(labels)
     )
-
-
-def _maybe(value: float | None) -> str:
-    return "–" if value is None else f"{value:.3f}"

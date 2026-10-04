@@ -13,8 +13,9 @@ from typing import Any
 
 from jev_vs_pii.decode import DecodeParams, decode
 from jev_vs_pii.metrics.bootstrap import paired_f2_diff
-from jev_vs_pii.metrics.spans import DocCounts, doc_counts
-from jev_vs_pii.schema import Dataset, Doc, Hits, LaneRun, ResultRow, Span
+from jev_vs_pii.metrics.spans import doc_counts, share
+from jev_vs_pii.report.tables import aligned_counts
+from jev_vs_pii.schema import Dataset, Doc, LaneRun, ResultRow, Span
 from jev_vs_pii.words import covering_spans, split_words
 
 ## ai4privacy's licence forbids showing its text, so examples come from these only.
@@ -48,10 +49,10 @@ def headline_records(rows: Sequence[ResultRow]) -> list[Record]:
             "latency_p95_s": row.cost.latency_p95_s,
             "failed": row.failed,
             "dropped": row.dropped,
-            "format_recall": _ratio(row.gold_by_shape.get("format")),
-            "context_recall": _ratio(row.gold_by_shape.get("context")),
-            "cleared_masked": _ratio(row.cleared_masked),
-            "recall_by_type": {label: _ratio(hits) for label, hits in row.gold_by_type.items()},
+            "format_recall": share(row.gold_by_shape.get("format")),
+            "context_recall": share(row.gold_by_shape.get("context")),
+            "cleared_masked": share(row.cleared_masked),
+            "recall_by_type": {label: share(hits) for label, hits in row.gold_by_type.items()},
             "tab_official": row.tab_official,
         }
         for row in _headline(rows)
@@ -68,19 +69,10 @@ def paired_records(rows: Sequence[ResultRow], seed: int = 0) -> list[Record]:
         if not decision:
             continue
         reference = max(decision, key=lambda row: row.scores.f2)
-        theirs = {doc.doc_id: doc for doc in reference.per_doc}
         for row in group:
-            if row is reference or row.lane.family == "human":
+            if row is reference:
                 continue
-            shared = [doc for doc in row.per_doc if doc.doc_id in theirs]
-            diff, low, high = paired_f2_diff(
-                [DocCounts(doc.tp, doc.fp, doc.fn) for doc in shared],
-                [
-                    DocCounts(theirs[d.doc_id].tp, theirs[d.doc_id].fp, theirs[d.doc_id].fn)
-                    for d in shared
-                ],
-                seed=seed,
-            )
+            diff, low, high = paired_f2_diff(*aligned_counts(row, reference), seed=seed)
             records.append(
                 {
                     "dataset": dataset,
@@ -199,7 +191,3 @@ def _headline(rows: Sequence[ResultRow]) -> list[ResultRow]:
 
 def _span(span: Span) -> Record:
     return {"start": span.start, "end": span.end, "label": span.label, "detail": span.detail}
-
-
-def _ratio(hits: Hits | None) -> float | None:
-    return hits[0] / hits[1] if hits and hits[1] else None

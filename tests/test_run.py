@@ -11,7 +11,7 @@ import pytest
 from jev_vs_pii.decode import DecodeParams, Threshold, Viterbi
 from jev_vs_pii.lanes.mask_all import MaskAllLane
 from jev_vs_pii.lanes.regex import RegexLane
-from jev_vs_pii.metrics.results import human_lane_run, score_lane_run
+from jev_vs_pii.metrics.results import score_lane_run
 from jev_vs_pii.report.export import (
     curve_records,
     example_records,
@@ -38,7 +38,7 @@ from jev_vs_pii.words import split_words
 _TEXT = "Mail ann@example.org or call Ann Lee today."
 
 
-def _doc(i: int, split: Split = "dev", others: tuple[tuple[Span, ...], ...] = ()) -> Doc:
+def _doc(i: int, split: Split = "dev") -> Doc:
     email = Span(start=5, end=20, label="CONTACT")
     name = Span(start=29, end=36, label="PERSON")
     return Doc(
@@ -47,7 +47,6 @@ def _doc(i: int, split: Split = "dev", others: tuple[tuple[Span, ...], ...] = ()
         split=split,
         text=_TEXT,
         gold=(email, name),
-        other_annotators=others,
         subject="Ann Lee",
     )
 
@@ -155,17 +154,6 @@ def test_floor_scores_perfect_recall_and_no_calibration() -> None:
     (word, exact) = score_lane_run(_lane_run([prediction]), [doc])
     assert word.scores.recall == 1.0 and word.ece is None
     assert exact.scores.tp == 0
-
-
-def test_human_row_uses_the_second_annotator_on_docs_that_have_one() -> None:
-    second = (Span(start=29, end=36, label="PERSON"),)
-    docs = [_doc(0, others=(second,)), _doc(1)]
-    human = human_lane_run(docs)
-    assert human is not None
-    assert [p.doc_id for p in human.predictions] == ["d0"]
-    (word, _) = score_lane_run(human, docs)
-    assert (word.scores.precision, word.scores.recall) == (1.0, 2 / 3)
-    assert human_lane_run([_doc(2)]) is None
 
 
 def test_rows_carry_per_doc_results_hit_counts_curves_and_tab_errors() -> None:

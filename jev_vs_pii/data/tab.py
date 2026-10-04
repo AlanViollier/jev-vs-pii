@@ -56,22 +56,22 @@ def load_tab(data_dir: Path, split: Split) -> list[Doc]:
     Returns
     -------
     list[Doc]
-        The first annotator is `gold` and, for what it left unmasked, `cleared`; the rest go
-        to `other_annotators`. `subject` is the applicant, the person to protect.
+        The first annotator's masking decisions are `gold` and, for what it left unmasked,
+        `cleared`; the other annotators are not used. `subject` is the applicant, the person
+        to protect.
     """
     raw = _TAB_DOCS.validate_json((data_dir / "tab" / TAB_FILES[split]).read_bytes())
     return [_to_doc(doc, split) for doc in raw]
 
 
 def _to_doc(doc: _TabDoc, split: Split) -> Doc:
-    first, *others = doc.annotations.values()
+    first = next(iter(doc.annotations.values()))
     return Doc(
         id=doc.doc_id,
         dataset="tab",
         split=split,
         text=doc.text,
         gold=_spans(first, masked=True),
-        other_annotators=tuple(_spans(a, masked=True) for a in others),
         subject=doc.meta.applicant,
         cleared=_spans(first, masked=False),
     )

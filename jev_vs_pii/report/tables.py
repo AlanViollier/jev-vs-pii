@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 
 from jev_vs_pii.metrics.bootstrap import paired_f2_diff
-from jev_vs_pii.metrics.spans import DocCounts
+from jev_vs_pii.metrics.spans import DocCounts, share
 from jev_vs_pii.schema import Hits, ResultRow
 
 HitsOf = Callable[[ResultRow], dict[str, Hits]]
@@ -15,7 +15,7 @@ HitsOf = Callable[[ResultRow], dict[str, Hits]]
 def results_table(rows: Sequence[ResultRow]) -> str:
     """One row per lane, best F2 first: F2 with its 95% CI, P, R, F1, leaks, calibration, cost, failures.
 
-    `frontier` marks lanes no other lane beats on both F2 and cost (the human row aside).
+    `frontier` marks lanes no other lane beats on both F2 and cost.
 
     Parameters
     ----------
@@ -37,7 +37,7 @@ def results_table(rows: Sequence[ResultRow]) -> str:
         f"| {row.name} "
         f"| {row.scores.f2:.3f} [{row.f2_ci[0]:.3f}, {row.f2_ci[1]:.3f}] "
         f"| {row.scores.precision:.3f} | {row.scores.recall:.3f} | {row.scores.f1:.3f} "
-        f"| {row.leaked:.1%} | {_percent(row.docs_without_leak)} | {_maybe(row.ece)} | {row.cost.usd_per_1k_docs:.3f} | {row.cost.latency_p50_s:.2g} "
+        f"| {row.leaked:.1%} | {fmt(row.docs_without_leak, '.0%')} | {fmt(row.ece)} | {row.cost.usd_per_1k_docs:.3f} | {row.cost.latency_p50_s:.2g} "
         f"| {_failures(row)} | {'yes' if row.name in frontier else ''} |"
         for row in _by_f2(rows)
     ]
@@ -128,7 +128,7 @@ def paired_table(rows: Sequence[ResultRow], reference: ResultRow, seed: int = 0)
     for row in _by_f2(rows):
         if row is reference:
             continue
-        mine, theirs = _aligned(row, reference)
+        mine, theirs = aligned_counts(row, reference)
         diff, low, high = paired_f2_diff(mine, theirs, seed=seed)
         clear = "yes" if low > 0 or high < 0 else ""
         lines.append(f"| {row.name} | {diff:+.3f} [{low:+.3f}, {high:+.3f}] | {clear} |")
@@ -137,47 +137,50 @@ def paired_table(rows: Sequence[ResultRow], reference: ResultRow, seed: int = 0)
 
 def pareto_frontier(rows: Sequence[ResultRow]) -> set[str]:
     """Names of lanes that no other lane beats on F2 without costing more."""
-    lanes = [row for row in rows if row.lane.family != "human"]
     return {
         row.name
-        for row in lanes
+        for row in rows
         if not any(
             other.cost.usd_per_1k_docs <= row.cost.usd_per_1k_docs
             and other.scores.f2 > row.scores.f2
-            for other in lanes
+            for other in rows
         )
     }
 
 
-def _aligned(a: ResultRow, b: ResultRow) -> tuple[list[DocCounts], list[DocCounts]]:
-    """Per-doc counts of both rows on the docs they share, in the same order."""
+def aligned_counts(
+    a: ResultRow, b: ResultRow, answered_only: bool = False
+) -> tuple[list[DocCounts], list[DocCounts]]:
+    """Per-doc counts of both rows on the docs they share, in the same order.
+
+    With `answered_only`, docs where either lane's answer failed are left out.
+    """
     theirs = {doc.doc_id: doc for doc in b.per_doc}
-    shared = [doc for doc in a.per_doc if doc.doc_id in theirs]
+    shared = [
+        (doc, theirs[doc.doc_id])
+        for doc in a.per_doc
+        if doc.doc_id in theirs
+        and not (answered_only and (doc.failed or theirs[doc.doc_id].failed))
+    ]
     return (
-        [DocCounts(doc.tp, doc.fp, doc.fn) for doc in shared],
-        [
-            DocCounts(theirs[doc.doc_id].tp, theirs[doc.doc_id].fp, theirs[doc.doc_id].fn)
-            for doc in shared
-        ],
+        [DocCounts(mine.tp, mine.fp, mine.fn) for mine, _ in shared],
+        [DocCounts(other.tp, other.fp, other.fn) for _, other in shared],
     )
+
+
+def fmt(value: float | None, spec: str = ".3f") -> str:
+    """`value` in `spec`, or a dash when there is none."""
+    return "–" if value is None else format(value, spec)
 
 
 def _by_f2(rows: Sequence[ResultRow]) -> list[ResultRow]:
     return sorted(rows, key=lambda row: row.scores.f2, reverse=True)
 
 
-def _maybe(value: float | None) -> str:
-    return "–" if value is None else f"{value:.3f}"
-
-
 def _share(hits: Hits | None) -> str:
-    return "–" if not hits or not hits[1] else f"{hits[0] / hits[1]:.2f}"
+    return fmt(share(hits), ".2f")
 
 
 def _failures(row: ResultRow) -> str:
     """Unusable answers, plus items that couldn't be placed in the text when there are any."""
     return f"{row.failed} (+{row.dropped} dropped)" if row.dropped else str(row.failed)
-
-
-def _percent(value: float | None) -> str:
-    return "–" if value is None else f"{value:.0%}"

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
 from pathlib import Path
 
 from jev_vs_pii.decode import DecodeParams, decode, describe
@@ -24,7 +23,6 @@ from jev_vs_pii.metrics.tab_official import tab_official_scores
 from jev_vs_pii.schema import (
     Doc,
     DocResult,
-    LaneInfo,
     LaneRun,
     MatchMode,
     Prediction,
@@ -80,13 +78,7 @@ def score_lane_run(
         _row(lane_run, scored, spans, mode, decoder, headline, seed, probs, labels)
         for mode in MODES
     ]
-    ## TAB's script scores against every annotator, the human row's own included, so it's skipped.
-    if (
-        data_dir is None
-        or lane_run.dataset != "tab"
-        or not headline
-        or lane_run.lane.family == "human"
-    ):
+    if data_dir is None or lane_run.dataset != "tab" or not headline:
         return rows
     masked = [
         prediction.model_copy(update={"spans": tuple(doc_spans)})
@@ -94,38 +86,6 @@ def score_lane_run(
     ]
     official = tab_official_scores(masked, data_dir, lane_run.split)
     return [rows[0].model_copy(update={"tab_official": official}), *rows[1:]]
-
-
-def human_lane_run(docs: Sequence[Doc]) -> LaneRun | None:
-    """TAB's second annotator as a lane: the agreement ceiling any method is read against.
-
-    Parameters
-    ----------
-    docs:
-        Gold docs; only those with a second annotator are kept.
-
-    Returns
-    -------
-    LaneRun | None
-        None when no doc has a second annotator (ai4privacy).
-    """
-    annotated = [doc for doc in docs if doc.other_annotators]
-    if not annotated:
-        return None
-    first = annotated[0]
-    return LaneRun(
-        run_id="human",
-        lane=LaneInfo(id="human", family="human"),
-        dataset=first.dataset,
-        split=first.split,
-        tier="full",
-        started_at=datetime.now(),
-        wall_clock_s=0.0,
-        predictions=tuple(
-            Prediction(doc_id=doc.id, lane_id="human", spans=doc.other_annotators[0])
-            for doc in annotated
-        ),
-    )
 
 
 def _spans(doc: Doc, prediction: Prediction, decoder: DecodeParams | None) -> Sequence[Span]:

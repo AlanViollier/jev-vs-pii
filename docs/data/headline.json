@@ -1588,37 +1588,5 @@
    "mention_precision": 0.946,
    "token_f1": 0.679
   }
- },
- {
-  "dataset": "tab",
-  "lane": "human",
-  "family": "human",
-  "decoder": null,
-  "n_docs": 105,
-  "f2": 0.8598691085079471,
-  "f2_low": 0.8402612705946472,
-  "f2_high": 0.8786870775160952,
-  "precision": 0.848728851895413,
-  "recall": 0.8627000183924959,
-  "f1": 0.8556574086742372,
-  "leaked": 0.13729998160750412,
-  "docs_without_leak": 0.05714285714285714,
-  "ece": null,
-  "usd_per_1k_docs": 0.0,
-  "latency_p50_s": 0.0,
-  "latency_p95_s": 0.0,
-  "failed": 0,
-  "dropped": 0,
-  "format_recall": 0.9302949061662198,
-  "context_recall": 0.7681447165232738,
-  "cleared_masked": 0.21237073918039065,
-  "recall_by_type": {
-   "ID": 0.9774193548387097,
-   "PERSON": 0.9097222222222222,
-   "DATETIME": 0.9446591707659874,
-   "LOCATION": 0.9093333333333333,
-   "OTHER": 0.5763793889648883
-  },
-  "tab_official": null
  }
 ]

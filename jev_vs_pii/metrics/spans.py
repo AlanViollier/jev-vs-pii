@@ -206,6 +206,11 @@ def cleared_hits(docs: Sequence[Doc], preds: Sequence[Sequence[Span]]) -> Hits:
     return masked, total
 
 
+def share(hits: Hits | None) -> float | None:
+    """Hits over total, or None when there is nothing to count."""
+    return hits[0] / hits[1] if hits and hits[1] else None
+
+
 def word_pairs(doc: Doc, pred: Sequence[Span]) -> list[tuple[Span | None, Span | None]]:
     """For each word of the doc: the gold span and the predicted span covering it, if any."""
     words = split_words(doc.text)

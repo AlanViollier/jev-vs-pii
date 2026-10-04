@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Callable, Sequence
 
-from jev_vs_pii.report.tables import cost_table, hits_table, paired_table, results_table
+from jev_vs_pii.metrics.spans import share
+from jev_vs_pii.report.tables import cost_table, fmt, hits_table, paired_table, results_table
 from jev_vs_pii.schema import Hits, ResultRow
 
 ## Fine dataset labels with fewer gold words than this in the split are left out as noise.
@@ -68,16 +69,15 @@ def results_markdown(rows: Sequence[ResultRow], seed: int = 0) -> str:
         decision = [row for row in word if row.lane.family == "decision"]
         if decision:
             best = max(decision, key=lambda row: row.scores.f2)
-            others = [row for row in word if row.lane.family != "human"]
             sections += [
                 f"### Every lane against {best.name}, same docs (paired bootstrap)",
-                paired_table(others, best, seed),
+                paired_table(word, best, seed),
             ]
         sections += [
             "### Format vs context: recall on PII found by its form vs by its meaning",
             _shape_table(word),
             "### Cost and time per doc",
-            cost_table([row for row in word if row.lane.family != "human"]),
+            cost_table(word),
             "### Recall by gold type (word level)",
             hits_table(word, lambda row: row.gold_by_type),
         ]
@@ -156,26 +156,20 @@ def _shape_table(rows: Sequence[ResultRow]) -> str:
     header += " left-in-clear masked (lower is better) |" if cleared else ""
     lines = [header, "|---|---|---|---|" + ("---|" if cleared else "")]
     for row in sorted(rows, key=lambda row: row.scores.f2, reverse=True):
-        format_recall = _ratio(row.gold_by_shape.get("format"))
-        context_recall = _ratio(row.gold_by_shape.get("context"))
+        format_recall = share(row.gold_by_shape.get("format"))
+        context_recall = share(row.gold_by_shape.get("context"))
         gap = (
             f"{format_recall - context_recall:+.2f}"
             if format_recall is not None and context_recall is not None
             else "–"
         )
-        line = f"| {row.name} | {_fmt(format_recall)} | {_fmt(context_recall)} | {gap} |"
+        line = (
+            f"| {row.name} | {fmt(format_recall, '.2f')} | {fmt(context_recall, '.2f')} | {gap} |"
+        )
         if cleared:
-            line += f" {_fmt(_ratio(row.cleared_masked))} |"
+            line += f" {fmt(share(row.cleared_masked), '.2f')} |"
         lines.append(line)
     return "\n".join(lines)
-
-
-def _ratio(hits: Hits | None) -> float | None:
-    return hits[0] / hits[1] if hits and hits[1] else None
-
-
-def _fmt(value: float | None) -> str:
-    return "–" if value is None else f"{value:.2f}"
 
 
 def _regrouped(group_of: Callable[[str], str]) -> Callable[[ResultRow], dict[str, Hits]]:
@@ -195,7 +189,7 @@ def _regrouped(group_of: Callable[[str], str]) -> Callable[[ResultRow], dict[str
 def _errors(rows: Sequence[ResultRow]) -> str:
     lines = []
     for row in sorted(rows, key=lambda row: row.scores.f2, reverse=True):
-        if row.lane.family in ("human", "baseline"):
+        if row.lane.family == "baseline":
             continue
         missed = ", ".join(f"{_short(text)} ({n})" for text, n in row.top_missed[:8]) or "–"
         alarms = ", ".join(f"{_short(text)} ({n})" for text, n in row.top_false_alarms[:8]) or "–"
