@@ -276,6 +276,9 @@ and where it may go:
 Whichever fits, real personal data needs a model you host or one run under a contract that
 allows it; none of the setups here was chosen for that.
 
+All in all, it depends: on what you need to catch, how much text you have, what you can
+spend, and where the text is allowed to go.
+
 The labels are one team's reading of a policy too. Two human experts labelling the same
 judgments reach only 0.86 F2 against each other, and some of what every method is marked
 wrong for (a city the policy leaves visible, "and" inside a court's name, cookie flags in
@@ -300,6 +303,11 @@ Decisions API in limited preview on September 29, 2026, and Fastino's API-only G
 followed on October 1. Both came out too late for this run. A decision model that takes a
 state and typed questions is one `DecisionModel` class away (`lanes/decision.py`), and
 every question design runs on it unchanged.
+
+This is a snapshot from October 2026, and the field moves fast: new decision models and
+LLMs will make these numbers stale within months. What should last is the method: the same
+data, splits, scoring and harness, where a new model is one config entry or one class away
+and `make bench` reruns everything.
 
 ## 05 · Methods
 
