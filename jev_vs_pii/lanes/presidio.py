@@ -51,6 +51,7 @@ class PresidioLane:
                 for result in results
                 if result.end > result.start
             ),
-            key=lambda span: (span.start, span.end),
+            ## Presidio can return one range under two types in any order; the label fixes it.
+            key=lambda span: (span.start, span.end, span.label or ""),
         )
         return Prediction(doc_id=doc.id, lane_id=self.info.id, spans=tuple(spans))
