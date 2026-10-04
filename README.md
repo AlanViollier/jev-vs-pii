@@ -439,7 +439,7 @@ nothing. `jev-vs-pii export runs/test` rewrites `docs/results.md` and `docs/data
 | `jev_vs_pii/metrics/` | word and exact scoring, calibration, bootstrap, cost, error strings, result rows |
 | `jev_vs_pii/run/` | runner, tiers, store, threshold tuning |
 | `jev_vs_pii/report/` | Markdown tables and the `docs/data/` export |
-| `docs/` | every results table, and the numbers behind the charts |
+| `docs/` | every results table, the charts and the race page (`docs/race/`), and the numbers behind them (`docs/data/`) |
 
 ## 10 · Limits
 
