@@ -20,9 +20,11 @@
 | regex | 0.539 [0.506, 0.572] | 0.945 | 0.487 | 0.643 | 51.3% | 18% | – | 0.000 | 9.8e-05 | 0 |  |
 | mask_all | 0.510 [0.482, 0.537] | 0.172 | 1.000 | 0.294 | 0.0% | 100% | – | 0.000 | 2.4e-06 | 0 |  |
 
-- → OpenAI reports Privacy Filter results on pii-masking-300k, this set's source.
-- → Privacy Filter has 8 categories: no organisations, demographics or most IDs.
-- → An LLM answer that is cut off or won't parse counts as finding nothing (`failed`).
+→ OpenAI reports Privacy Filter results on pii-masking-300k, this set's source.
+
+→ Privacy Filter has 8 categories: no organisations, demographics or most IDs.
+
+→ An LLM answer that is cut off or won't parse counts as finding nothing (`failed`).
 
 ### Every lane against decision_fields_skip:jev · threshold cutoff=0.65, same docs (paired bootstrap)
 
@@ -216,9 +218,11 @@
 | regex | 0.433 [0.410, 0.454] | 0.995 | 0.379 | 0.549 | 62.1% | 4% | – | 0.000 | 0.00013 | 0 |  |
 | mask_all | 0.358 [0.341, 0.374] | 0.100 | 1.000 | 0.182 | 0.0% | 100% | – | 0.000 | 2.7e-06 | 0 |  |
 
-- → GLiNER-PII was trained on Nemotron-PII's train split. Test samples the test file; dev samples train, so GLiNER's dev score and tuned threshold come from its own training data.
-- → Privacy Filter has 8 categories: no organisations, demographics or most IDs.
-- → An LLM answer that is cut off or won't parse counts as finding nothing (`failed`).
+→ GLiNER-PII was trained on Nemotron-PII's train split. Test samples the test file; dev samples train, so GLiNER's dev score and tuned threshold come from its own training data.
+
+→ Privacy Filter has 8 categories: no organisations, demographics or most IDs.
+
+→ An LLM answer that is cut off or won't parse counts as finding nothing (`failed`).
 
 ### Every lane against decision_fields_skip:jev · threshold cutoff=0.4, same docs (paired bootstrap)
 
@@ -392,34 +396,47 @@
 
 ### Most leaked and most over-masked strings
 
-- → **llm_sayback:haiku4.5** leaks: paul (7), 60 seconds (5), reva (4), heather (4), author (4), kathy (4), kevin (3), yolanda (3)  
-  over-masks: gender (6), liverpool (4), asthma (3), manchester united (3), vegan (3), microsoft (3), chase bank (2), acmecorp (2)
-- → **llm_sayback:deepseek-v4-flash** leaks: author (5), 60 seconds (5), reva (4), heather (4), kathy (4), yolanda (3), manager (3), yadira (3)  
-  over-masks: liverpool (4), race ethnicity (3), manchester united (3), employee (3), political view (3), microsoft (3), her (2), api key (2)
-- → **llm_sayback:qwen3-235b** leaks: paul (7), author (5), 60 seconds (5), reva (4), full-time (4), heather (4), kathy (4), kerala (4)  
-  over-masks: the candidate (7), gender (6), liverpool (4), investor (4), race ethnicity (3), manchester united (3), email (3), phone number (3)
-- → **llm_sayback:deepseek-v4-flash-think** leaks: usa (7), 2024-07-15 (5), 07/15/2024 (5), 60 seconds (5), english (4), kathy (4), kerala (4), revvibe motors (4)  
-  over-masks: liverpool (4), manchester united (3), his (2), chase bank (2), catholic (2), user account and transaction services (2), 34 (1), 5'10" (1)
-- → **llm_sayback:qwen3-30b** leaks: lea (7), maurer (7), author (5), reva (4), full-time (4), heather (4), paul (4), kathy (4)  
-  over-masks: liverpool (4), the investor (4), $50 (3), asthma (3), manchester united (3), variation (3), race ethnicity (3), training plan (3)
-- → **decision_fields_skip:jev · threshold cutoff=0.4** leaks: some college (7), 60 seconds (5), tecnovista it (4), sales representatives (2), 25 (2), a positive (2), janitor building cleaner (2), jwt_token=eyjhbgcioijiuzi1niisinr5cci6i… (2)  
-  over-masks: number (55), date (46), id (27), pin (26), contact (17), account (17), blood type (16), company (16)
-- → **llm_sayback:gpt4.1-nano** leaks: full-time (9), high school (6), some college (6), part-time (6), graduate level (5), english (5), author (5), 60 seconds (5)  
-  over-masks: $5,000 (4), liverpool (4), the investor (4), instagram (3), facebook (3), manchester united (3), 5% (3), $500.00 (3)
-- → **gliner_pii · threshold cutoff=0.2** leaks: full-time (17), high school (13), o+ (10), some college (7), english (6), bachelor's degree (6), black (5), graduate level (5)  
-  over-masks: support team (12), healthcare provider (9), digital marketing (5), user (4), consultant (4), 2024 (4), service representative (4), author (4)
-- → **decision_typed_skip:jev · threshold cutoff=0.4** leaks: some college (7), 60 seconds (5), tecnovista it (4), https://developer.github.com/v3/repos/#… (3), sales representatives (2), 25 (2), brokerage team (2), a positive (2)  
-  over-masks: email (80), date (64), account (35), user (30), medical record number (28), account number (27), customer id (25), health plan beneficiary number (24)
-- → **decision_typed:jev · threshold cutoff=0.4** leaks: 60 seconds (5), https://developer.github.com/v3/repos/#… (3), sales representatives (2), 25 (2), brokerage team (2), janitor building cleaner (2), jwt_token=eyjhbgcioijiuzi1niisinr5cci6i… (2), 5-minute (2)  
-  over-masks: email (54), account (27), date (26), the (23), a (20), customer id (20), contact (19), account number (17)
-- → **decision_words:jev · threshold cutoff=0.1** leaks: harper & lane products (7), 60 seconds (5), greensprout solutions (3), tecnovista it (3), electoral solutions ltd. (3), sales representatives (2), innolink services (2), harvest capital partners (2)  
-  over-masks: your (147), you (45), email (44), my (37), i (35), me (30), date (29), her (23)
-- → **privacy_filter · threshold cutoff=0.001** leaks: usa (28), full-time (19), male (16), female (15), english (13), high school (13), part-time (10), white (8)  
-  over-masks: cvv (2), http (2), 123456 (2), bic (1), us (1), u2v1bcbbdcfcmyzynzhcm1v (1), whom (1), delves (1)
-- → **presidio** leaks: full-time (19), male (16), female (15), english (14), high school (13), o+ (10), part-time (10), self-employed (7)  
-  over-masks: today (18), daily (12), the day (5), annual (4), 2024 (3), liverpool (3), commonwealth (2), 24 hours (2)
-- → **regex** leaks: usa (40), full-time (19), male (16), female (15), english (14), high school (13), su su (13), james (11)  
-  over-masks: 123456 (2), 120/80 (1), 80-100 (1), 12345678 (1), 555-555-5555 (1), 095514669851365 (1), 2026r01 (1), suptick-20230219-001 (1)
+→ **llm_sayback:haiku4.5** leaks: paul (7), 60 seconds (5), reva (4), heather (4), author (4), kathy (4), kevin (3), yolanda (3)  
+over-masks: gender (6), liverpool (4), asthma (3), manchester united (3), vegan (3), microsoft (3), chase bank (2), acmecorp (2)
+
+→ **llm_sayback:deepseek-v4-flash** leaks: author (5), 60 seconds (5), reva (4), heather (4), kathy (4), yolanda (3), manager (3), yadira (3)  
+over-masks: liverpool (4), race ethnicity (3), manchester united (3), employee (3), political view (3), microsoft (3), her (2), api key (2)
+
+→ **llm_sayback:qwen3-235b** leaks: paul (7), author (5), 60 seconds (5), reva (4), full-time (4), heather (4), kathy (4), kerala (4)  
+over-masks: the candidate (7), gender (6), liverpool (4), investor (4), race ethnicity (3), manchester united (3), email (3), phone number (3)
+
+→ **llm_sayback:deepseek-v4-flash-think** leaks: usa (7), 2024-07-15 (5), 07/15/2024 (5), 60 seconds (5), english (4), kathy (4), kerala (4), revvibe motors (4)  
+over-masks: liverpool (4), manchester united (3), his (2), chase bank (2), catholic (2), user account and transaction services (2), 34 (1), 5'10" (1)
+
+→ **llm_sayback:qwen3-30b** leaks: lea (7), maurer (7), author (5), reva (4), full-time (4), heather (4), paul (4), kathy (4)  
+over-masks: liverpool (4), the investor (4), $50 (3), asthma (3), manchester united (3), variation (3), race ethnicity (3), training plan (3)
+
+→ **decision_fields_skip:jev · threshold cutoff=0.4** leaks: some college (7), 60 seconds (5), tecnovista it (4), sales representatives (2), 25 (2), a positive (2), janitor building cleaner (2), jwt_token=eyjhbgcioijiuzi1niisinr5cci6i… (2)  
+over-masks: number (55), date (46), id (27), pin (26), contact (17), account (17), blood type (16), company (16)
+
+→ **llm_sayback:gpt4.1-nano** leaks: full-time (9), high school (6), some college (6), part-time (6), graduate level (5), english (5), author (5), 60 seconds (5)  
+over-masks: $5,000 (4), liverpool (4), the investor (4), instagram (3), facebook (3), manchester united (3), 5% (3), $500.00 (3)
+
+→ **gliner_pii · threshold cutoff=0.2** leaks: full-time (17), high school (13), o+ (10), some college (7), english (6), bachelor's degree (6), black (5), graduate level (5)  
+over-masks: support team (12), healthcare provider (9), digital marketing (5), user (4), consultant (4), 2024 (4), service representative (4), author (4)
+
+→ **decision_typed_skip:jev · threshold cutoff=0.4** leaks: some college (7), 60 seconds (5), tecnovista it (4), https://developer.github.com/v3/repos/#… (3), sales representatives (2), 25 (2), brokerage team (2), a positive (2)  
+over-masks: email (80), date (64), account (35), user (30), medical record number (28), account number (27), customer id (25), health plan beneficiary number (24)
+
+→ **decision_typed:jev · threshold cutoff=0.4** leaks: 60 seconds (5), https://developer.github.com/v3/repos/#… (3), sales representatives (2), 25 (2), brokerage team (2), janitor building cleaner (2), jwt_token=eyjhbgcioijiuzi1niisinr5cci6i… (2), 5-minute (2)  
+over-masks: email (54), account (27), date (26), the (23), a (20), customer id (20), contact (19), account number (17)
+
+→ **decision_words:jev · threshold cutoff=0.1** leaks: harper & lane products (7), 60 seconds (5), greensprout solutions (3), tecnovista it (3), electoral solutions ltd. (3), sales representatives (2), innolink services (2), harvest capital partners (2)  
+over-masks: your (147), you (45), email (44), my (37), i (35), me (30), date (29), her (23)
+
+→ **privacy_filter · threshold cutoff=0.001** leaks: usa (28), full-time (19), male (16), female (15), english (13), high school (13), part-time (10), white (8)  
+over-masks: cvv (2), http (2), 123456 (2), bic (1), us (1), u2v1bcbbdcfcmyzynzhcm1v (1), whom (1), delves (1)
+
+→ **presidio** leaks: full-time (19), male (16), female (15), english (14), high school (13), o+ (10), part-time (10), self-employed (7)  
+over-masks: today (18), daily (12), the day (5), annual (4), 2024 (3), liverpool (3), commonwealth (2), 24 hours (2)
+
+→ **regex** leaks: usa (40), full-time (19), male (16), female (15), english (14), high school (13), su su (13), james (11)  
+over-masks: 123456 (2), 120/80 (1), 80-100 (1), 12345678 (1), 555-555-5555 (1), 095514669851365 (1), 2026r01 (1), suptick-20230219-001 (1)
 
 ## tab · test (105 docs, 127 docs)
 
@@ -444,8 +461,9 @@
 | llm_sayback:gpt4.1-nano | 0.483 [0.441, 0.524] | 0.338 | 0.540 | 0.416 | 46.0% | 15% | – | 0.351 | 3.5 | 0 (+48 dropped) |  |
 | mask_all | 0.405 [0.386, 0.423] | 0.120 | 1.000 | 0.214 | 0.0% | 100% | – | 0.000 | 2.5e-06 | 0 |  |
 
-- → Privacy Filter has 8 categories: no organisations, demographics or most IDs.
-- → An LLM answer that is cut off or won't parse counts as finding nothing (`failed`).
+→ Privacy Filter has 8 categories: no organisations, demographics or most IDs.
+
+→ An LLM answer that is cut off or won't parse counts as finding nothing (`failed`).
 
 ### Every lane against decision_fields_skip:jev · threshold cutoff=0.4, same docs (paired bootstrap)
 
@@ -665,34 +683,47 @@
 
 ### Most leaked and most over-masked strings
 
-- → **decision_fields_skip:jev · threshold cutoff=0.4** leaks: widows (16), city court (11), będzin district court (10), widow’s bereavement allowance (9), wba (9), the galleries (9), serco (7), widowers (7)  
-  over-masks: applicant (411), born (134), ankara (59), united kingdom (56), state security court (51), date (48), lives (47), foreign (44)
-- → **decision_typed_skip:jev · threshold cutoff=0.5** leaks: serco (17), widows (16), city court (11), industries (11), będzin district court (10), widow’s bereavement allowance (9), wba (9), the galleries (9)  
-  over-masks: applicant (287), born (133), application (104), ankara (60), date (42), london (41), case (36), organisation (35)
-- → **llm_sayback:haiku4.5** leaks: british (21), serco (20), widows (16), pkk (13), mr benham (13), industries (12), mr ryssdal (11), turkish (11)  
-  over-masks: foreign and commonwealth office (36), london (34), united kingdom (29), ankara state security court (28), united kingdom of great britain and nor… (22), istanbul (22), 1 november 1998 (21), sweden (20)
-- → **decision_typed:jev · threshold cutoff=0.55** leaks: serco (19), widows (16), city court (11), industries (11), będzin district court (10), united kingdom (9), widow’s bereavement allowance (9), wba (9)  
-  over-masks: applicant (172), born (82), ankara (50), he (35), date (31), london (29), an (29), warsaw (29)
-- → **llm_sayback:deepseek-v4-flash** leaks: british (22), united kingdom (22), widows (16), pkk (15), mr ryssdal (11), city court (11), somalia (11), turkish (10)  
-  over-masks: the applicant (160), the union (31), a (29), ankara state security court (28), london (27), sweden (20), court of cassation (18), swedish (17)
-- → **presidio** leaks: mr c. whomersley (22), serco (17), widows (16), pkk (15), mr j. wołąsiewicz (14), mr benham (13), industries (12), mr ryssdal (11)  
-  over-masks: northern ireland (49), the united kingdom (47), the united kingdom of great britain (46), london (40), the republic of turkey (32), united kingdom (30), turkish (27), the same day (27)
-- → **llm_sayback:qwen3-235b** leaks: british (24), serco (20), widows (16), pkk (13), industries (12), mr ryssdal (11), bnp (11), city court (11)  
-  over-masks: a (30), foreign and commonwealth office (25), london (23), court of cassation (20), 1 november 1998 (19), ankara state security court (18), ankara (17), applicant (17)
-- → **gliner_pii · threshold cutoff=0.05** leaks: mr c. whomersley (22), widows (16), mr j. wołąsiewicz (14), mr ryssdal (11), mr r. ryssdal (10), mr j. grainger (9), white (9), widow’s bereavement allowance (9)  
-  over-masks: applicant (243), united kingdom (141), lawyer (104), agent (64), turkish (63), judge (62), applicant’s (58), secretary of state (57)
-- → **decision_words:jev · threshold cutoff=0.3** leaks: serco (20), united kingdom (17), widows (16), pkk (14), industries (12), city court (11), będzin district court (10), bnp (9)  
-  over-masks: applicant (386), his (212), applicant’s (133), he (114), him (67), application (56), born (50), ankara (47)
-- → **llm_sayback:deepseek-v4-flash-think** leaks: united kingdom (22), widows (16), mr benham (13), mr c. whomersley (13), industries (12), british (11), city court (11), somalia (11)  
-  over-masks: ankara state security court (22), istanbul (20), turkish (18), supreme administrative court (16), 1 november 1998 (13), polish (13), w.k. (13), ankara (11)
-- → **llm_sayback:qwen3-30b** leaks: serco (20), british (20), widows (16), pkk (15), mr benham (13), industries (12), mr ryssdal (11), united kingdom (11)  
-  over-masks: the applicant (117), foreign and commonwealth office (37), london (27), court of appeal (23), secretary of state (23), the government (20), ankara state security court (19), ankara (17)
-- → **privacy_filter · threshold cutoff=0.001** leaks: british (28), united kingdom (22), serco (16), widows (16), pkk (14), industries (12), bnp (11), turkish (11)  
-  over-masks: sergeant h (10), chamber (9), w.k (8), cassation (7), sąd najwyższy (7), mrs g (6), corporal g (6), lagen (5)
-- → **regex** leaks: british (28), mr c. whomersley (22), united kingdom (22), serco (20), widows (16), pkk (15), mr j. wołąsiewicz (14), mr benham (13)  
-  over-masks: 1 november 1998 (21), 1 november 2001 (12), 17 june 2004 (7), 25 february 1997 (3), 1997-i (3), 1998-iv (2), 15 november 1996 (2), 65731/01 (2)
-- → **llm_sayback:gpt4.1-nano** leaks: british (25), serco (20), united kingdom (17), widows (16), mr benham (13), mr ryssdal (11), city court (11), somalia (11)  
-  over-masks: the applicant (287), the court (98), the convention (49), the union (31), london (28), foreign and commonwealth office (25), united kingdom (21), procedure (19)
+→ **decision_fields_skip:jev · threshold cutoff=0.4** leaks: widows (16), city court (11), będzin district court (10), widow’s bereavement allowance (9), wba (9), the galleries (9), serco (7), widowers (7)  
+over-masks: applicant (411), born (134), ankara (59), united kingdom (56), state security court (51), date (48), lives (47), foreign (44)
+
+→ **decision_typed_skip:jev · threshold cutoff=0.5** leaks: serco (17), widows (16), city court (11), industries (11), będzin district court (10), widow’s bereavement allowance (9), wba (9), the galleries (9)  
+over-masks: applicant (287), born (133), application (104), ankara (60), date (42), london (41), case (36), organisation (35)
+
+→ **llm_sayback:haiku4.5** leaks: british (21), serco (20), widows (16), pkk (13), mr benham (13), industries (12), mr ryssdal (11), turkish (11)  
+over-masks: foreign and commonwealth office (36), london (34), united kingdom (29), ankara state security court (28), united kingdom of great britain and nor… (22), istanbul (22), 1 november 1998 (21), sweden (20)
+
+→ **decision_typed:jev · threshold cutoff=0.55** leaks: serco (19), widows (16), city court (11), industries (11), będzin district court (10), united kingdom (9), widow’s bereavement allowance (9), wba (9)  
+over-masks: applicant (172), born (82), ankara (50), he (35), date (31), london (29), an (29), warsaw (29)
+
+→ **llm_sayback:deepseek-v4-flash** leaks: british (22), united kingdom (22), widows (16), pkk (15), mr ryssdal (11), city court (11), somalia (11), turkish (10)  
+over-masks: the applicant (160), the union (31), a (29), ankara state security court (28), london (27), sweden (20), court of cassation (18), swedish (17)
+
+→ **presidio** leaks: mr c. whomersley (22), serco (17), widows (16), pkk (15), mr j. wołąsiewicz (14), mr benham (13), industries (12), mr ryssdal (11)  
+over-masks: northern ireland (49), the united kingdom (47), the united kingdom of great britain (46), london (40), the republic of turkey (32), united kingdom (30), turkish (27), the same day (27)
+
+→ **llm_sayback:qwen3-235b** leaks: british (24), serco (20), widows (16), pkk (13), industries (12), mr ryssdal (11), bnp (11), city court (11)  
+over-masks: a (30), foreign and commonwealth office (25), london (23), court of cassation (20), 1 november 1998 (19), ankara state security court (18), ankara (17), applicant (17)
+
+→ **gliner_pii · threshold cutoff=0.05** leaks: mr c. whomersley (22), widows (16), mr j. wołąsiewicz (14), mr ryssdal (11), mr r. ryssdal (10), mr j. grainger (9), white (9), widow’s bereavement allowance (9)  
+over-masks: applicant (243), united kingdom (141), lawyer (104), agent (64), turkish (63), judge (62), applicant’s (58), secretary of state (57)
+
+→ **decision_words:jev · threshold cutoff=0.3** leaks: serco (20), united kingdom (17), widows (16), pkk (14), industries (12), city court (11), będzin district court (10), bnp (9)  
+over-masks: applicant (386), his (212), applicant’s (133), he (114), him (67), application (56), born (50), ankara (47)
+
+→ **llm_sayback:deepseek-v4-flash-think** leaks: united kingdom (22), widows (16), mr benham (13), mr c. whomersley (13), industries (12), british (11), city court (11), somalia (11)  
+over-masks: ankara state security court (22), istanbul (20), turkish (18), supreme administrative court (16), 1 november 1998 (13), polish (13), w.k. (13), ankara (11)
+
+→ **llm_sayback:qwen3-30b** leaks: serco (20), british (20), widows (16), pkk (15), mr benham (13), industries (12), mr ryssdal (11), united kingdom (11)  
+over-masks: the applicant (117), foreign and commonwealth office (37), london (27), court of appeal (23), secretary of state (23), the government (20), ankara state security court (19), ankara (17)
+
+→ **privacy_filter · threshold cutoff=0.001** leaks: british (28), united kingdom (22), serco (16), widows (16), pkk (14), industries (12), bnp (11), turkish (11)  
+over-masks: sergeant h (10), chamber (9), w.k (8), cassation (7), sąd najwyższy (7), mrs g (6), corporal g (6), lagen (5)
+
+→ **regex** leaks: british (28), mr c. whomersley (22), united kingdom (22), serco (20), widows (16), pkk (15), mr j. wołąsiewicz (14), mr benham (13)  
+over-masks: 1 november 1998 (21), 1 november 2001 (12), 17 june 2004 (7), 25 february 1997 (3), 1997-i (3), 1998-iv (2), 15 november 1996 (2), 65731/01 (2)
+
+→ **llm_sayback:gpt4.1-nano** leaks: british (25), serco (20), united kingdom (17), widows (16), mr benham (13), mr ryssdal (11), city court (11), somalia (11)  
+over-masks: the applicant (287), the court (98), the convention (49), the union (31), london (28), foreign and commonwealth office (25), united kingdom (21), procedure (19)
 
 ## Checks
 

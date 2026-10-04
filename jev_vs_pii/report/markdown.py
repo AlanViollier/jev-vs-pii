@@ -124,7 +124,8 @@ def _caveats(dataset: str, rows: Sequence[ResultRow]) -> str:
         for prefix, note in [*_CAVEATS.get(dataset, []), *_ALWAYS]
         if any(lane_id.startswith(prefix) for lane_id in ids)
     ]
-    return "\n".join(f"- → {note}" for note in notes)
+    ## Arrows, not list bullets: one paragraph per note.
+    return "\n\n".join(f"→ {note}" for note in notes)
 
 
 def _official_table(rows: Sequence[ResultRow]) -> str:
@@ -198,8 +199,8 @@ def _errors(rows: Sequence[ResultRow]) -> str:
             continue
         missed = ", ".join(f"{_short(text)} ({n})" for text, n in row.top_missed[:8]) or "–"
         alarms = ", ".join(f"{_short(text)} ({n})" for text, n in row.top_false_alarms[:8]) or "–"
-        lines.append(f"- → **{row.name}** leaks: {missed}  \n  over-masks: {alarms}")
-    return "\n".join(lines)
+        lines.append(f"→ **{row.name}** leaks: {missed}  \nover-masks: {alarms}")
+    return "\n\n".join(lines)
 
 
 ## Synthetic data holds long tokens and cookies; past this they only clutter the table.
