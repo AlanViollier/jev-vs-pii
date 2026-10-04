@@ -1,22 +1,24 @@
 # jev-vs-pii
 
 How good is [Jev](https://docs.typesafe.ai), a decision model, at finding personal
-information in text, next to the tools used today and to current LLMs?
+information in text, next to the tools used today and to current LLMs? A decision model
+answers typed questions (yes/no, or pick one option) with probabilities instead of writing
+text.
 
 **Short answer.** On court judgments, where context decides what identifies someone, Jev
-ties Claude Haiku 4.5 for the best score, runs about five times faster, costs about three
-quarters as much, and lets the least personal information through: 11% stays unmasked,
-against 17% for Haiku. On short synthetic text the larger LLMs stay ahead.
+ties Claude Haiku 4.5 for the best score, runs about six times faster, costs about three
+quarters as much, and lets the least personal information through (11% stays unmasked,
+against 17% for Haiku). On short synthetic text the larger LLMs stay ahead.
 
 **What this project found**
 
-→ **A decision model can match a strong LLM where anonymisation is hard.** On European Court of Human Rights judgments Jev scores as well as Haiku (F2 0.83 against 0.82), finds 81% of the details that identify someone only through context (a relative, an employer, a town), and answers in 0.7 s against 3.8 s.
+→ **A decision model can match a strong LLM where anonymisation is hard.** On European Court of Human Rights judgments Jev scores as well as Haiku (F2 0.83 against 0.82), finds 81% of the details that identify someone only through context (a relative, an employer, a town), and answers in 0.66 s against 3.8 s.
 
-→ **How you ask matters as much as which model you ask.** Jev first masked "Account" in "Account number: 4417…", because the question asked what each word *is*. One extra answer option, "the name of a kind of information", took it from 0.84 to 0.91 F2 on synthetic text. A reworded prompt took Haiku from 0.77 to 0.82 on judgments. Each change was picked on a separate dev set before the test run (§05).
+→ **How you ask matters as much as which model you ask.** Jev first masked "Account" in "Account number: 4417…", because the question asked what each word *is*. One extra answer option, "the name of a kind of information", took it from 0.84 to 0.91 F2 on synthetic text. A reworded prompt took Haiku from 0.77 to 0.82 on judgments. The problems showed up in the first full run's errors; each fix was chosen on a separate dev set before the final test run (§05).
 
 → **The right method depends on what you need to catch.** A fixed list of formats (emails, phone numbers, IDs) is cheap and fast with a local model. A policy like "anything that could re-identify this person" needs a model that reads instructions, Jev or an LLM, and then the scope you write is what it finds (§03).
 
-→ **Usable today? Not yet, but soon.** Every paid method here sends the text to a third-party API through OpenRouter, and none was chosen for GDPR or data-residency terms. OpenAI announced its own decision model in September 2026. Once a provider releases one as open weights, or runs it under a GDPR-compliant contract, a decision model becomes a real option for anonymisation, depending on the scope (§04).
+→ **Usable today? Not yet, but soon.** Every paid method here sends the text to a third-party API through OpenRouter, and none was chosen for GDPR or data-residency terms. OpenAI [announced its own decision model](https://openai.com/index/devday-2026-recap/) in September 2026. Once a provider releases one as open weights, or runs it under a GDPR-compliant contract, a decision model becomes a real option for anonymisation, depending on the scope (§04).
 
 **What this is, and isn't.** A comparison of approaches, not a shortlist. The models here
 stand in for each kind of method: a decision model, LLMs from small to large, and the usual
@@ -59,7 +61,7 @@ business documents.
 
 <br>
 
-**What gets through:** the share of the personal information left unmasked.
+**What gets through, as the share of personal information left unmasked**
 
 | | ai4privacy | Nemotron-PII | TAB |
 |---|---|---|---|
@@ -70,17 +72,17 @@ business documents.
 
 Jev catches a lot and masks more around it. Some of what it is marked wrong for is
 arguably personal (a city, "born" next to a birth date), and some of what counts as a leak
-is a labelling convention: these datasets set the ceiling as much as the models do. Every
+is a labelling convention. These datasets set the ceiling as much as the models do. Every
 method's numbers are in §01, the details in §02 and §03.
 
 <br>
 
 ## 01 · Results
 
-### Score: how much of the personal information each method finds
+### How much of the personal information each method finds
 
-Word-level F2 on the test sets: finding personal information counts four times as much as
-not over-masking (§07). Best in each column in bold.
+Word-level F2 on the test sets, where finding personal information counts four times as
+much as not over-masking (§07). Best in each column in bold.
 
 | method | ai4privacy | Nemotron-PII | TAB | TAB F1 |
 |---|---|---|---|---|
@@ -100,7 +102,7 @@ not over-masking (§07). Best in each column in bold.
 Jev is shown with its final question design; the earlier designs and what each change did
 are in §05. † GLiNER-PII was trained on Nemotron-PII's train split.
 
-### What gets through: personal information left unmasked
+### How much personal information gets through
 
 The share of personal-information words each method left unmasked. Lower is better.
 
@@ -138,10 +140,10 @@ better.
 | regex | 18% | 4% | 0% |
 
 A court judgment runs to about 600 words, so one missed detail is enough to leave it
-unclean: almost none come out fully masked, for any method.
+unclean, and almost none come out fully masked, for any method.
 
 None of these numbers is absolute. The labels are one team's reading of what counts as
-personal: some of what Jev and the others are marked wrong for is arguably personal (a
+personal. Some of what Jev and the others are marked wrong for is arguably personal (a
 city, "born" next to a birth date), and some of what counts as a leak is a labelling
 convention ("and" inside a court's name, cookie flags). More in §03.
 
@@ -182,12 +184,12 @@ around it. On judgments its recall is 0.89 against Haiku's 0.83, and it finds 81
 details that identify someone only through context (Haiku 73%); its precision is 0.67
 against 0.77. Judgments reward finding context. Short synthetic text is full of easy,
 well-formatted values, where over-masking decides the score: Jev's precision there is
-0.74 to 0.83 against Haiku's 0.89 to 0.96. What it still over-masks most: "applicant",
+0.74 to 0.83 against Haiku's 0.89 to 0.96. What it still over-masks most is "applicant",
 "born", and a few field names it takes for values ("number", "date").
 
-**Is it cheaper or faster?** Faster, always: 0.5 s against Haiku's 1.8 s on short
-documents, 0.7 s against 3.8 s on judgments. Cheaper, up to a point: Jev bills only what it
-reads, but asks one question per word, so its cost grows with length. It costs a third of
+**Is it cheaper or faster?** It is faster everywhere, 0.47 s against Haiku's 1.8 s on
+short documents and 0.66 s against 3.8 s on judgments. It is cheaper only up to a point.
+Jev bills only what it reads, but asks one question per word, so its cost grows with length. It costs a third of
 Haiku on short documents ($0.50 against $1.51 per 1,000) and about three quarters on
 judgments ($3.79 against $5.22); on these datasets it passes Haiku at about 1,200 words.
 
@@ -200,15 +202,15 @@ smarter choice of which words to ask about, such as a cheap first pass that flag
 candidates, would likely cut cost and over-masking further.
 
 **Can you trust its output?** Every Jev call returned a probability for every question (one
-call failed once and went through on retry), and those probabilities are well calibrated:
-expected calibration error 0.04 to 0.08, as good as the local models. The LLMs failed on
+call failed once and went through on retry), and those probabilities are well calibrated,
+with an expected calibration error of 0.04 to 0.08, in the same range as the local models. The LLMs failed on
 up to 13 of 127 judgments, by looping or running out of tokens, and each failure counts as
 finding nothing.
 
 ### About the method
 
-**Did you tweak Jev until it won?** Its question design did change after the first run,
-and so did the LLMs' prompt; that is how the numbers got right. The first full run had three problems that only its errors showed:
+**Did you tweak Jev until it won?** Its question design changed after the first full run,
+and so did the LLMs' prompt. That run had three problems that only its errors showed:
 Jev masked field names like "Account number", the stop-word skip also skipped "May", "US"
 and number words, and LLM answers written with straight quotes didn't match the curly
 quotes in the judgments. Each fix, and a reworded LLM prompt, was checked on a separate
@@ -217,8 +219,8 @@ dev run now lists every method's most leaked and over-masked words, so problems 
 these show up before a full run.
 
 **Jev gets a threshold and the LLMs don't. Is that fair?** The threshold is picked on the
-20 dev documents per dataset, never on test. A probability you can set a threshold on is part of
-what Jev offers; an LLM gives one answer, and changing its trade-off means rewording the
+20 dev documents per dataset, never on test. A probability you can set a threshold on is
+part of what Jev offers; an LLM gives one answer, and changing its trade-off means rewording the
 prompt.
 
 **Why F2 and not F1?** For anonymisation, a leaked name costs more than an over-masked
@@ -231,22 +233,22 @@ per call, which can shift LLM results between runs.
 
 ### About everyone else
 
-**What does every method miss?** Details that identify someone only through context: the
-employer ("Serco"), a court that names the town ("Będzin District Court"), what the case
+**What does every method miss?** Details that identify someone only through context, like
+the employer ("Serco"), a court that names the town ("Będzin District Court"), what the case
 is about ("widows"). The most leaked and most over-masked words per method are in
 [`docs/results.md`](docs/results.md).
 
-**Do model size, reasoning or the prompt matter for the LLMs?** Size does where context
-matters: Qwen3 235B over 30B is +0.04 and +0.02 F2 on the synthetic sets, +0.11 on
-judgments. Reasoning doesn't: DeepSeek V4 Flash with thinking on scored the same or lower,
-never finished 13 judgments, and took 12 times as long. The prompt does a lot: the
-datasets' own guidelines instead of a one-line definition took Qwen3 235B from 0.53 to
+**Do model size, reasoning or the prompt matter for the LLMs?** Size matters where context
+does. Qwen3 235B beats 30B by 0.04 and 0.02 F2 on the synthetic sets and by 0.11 on
+judgments. Reasoning doesn't help. DeepSeek V4 Flash with thinking on scored the same or
+lower, never finished 13 judgments, and took 12 times as long. The prompt matters a lot.
+The datasets' own guidelines instead of a one-line definition took Qwen3 235B from 0.53 to
 0.78 on judgments in the dev run, and the exact-copy prompt took Haiku from 0.77 to 0.82.
 
 ### Practical
 
-**Why no GPT-5, Claude Sonnet or Gemini Pro?** Budget: everything here cost $11.83. Haiku
-is the strong reference, and any model on OpenRouter is one entry in `config.yaml` and a
+**Why no GPT-5, Claude Sonnet or Gemini Pro?** The budget. Everything here cost $11.83,
+Haiku is the strong reference, and any model on OpenRouter is one entry in `config.yaml` and a
 rerun away.
 
 **Can I rerun it?** `make bench`, about $7.40 of OpenRouter calls and 1 to 2 hours. Every
@@ -267,7 +269,7 @@ and where it may go:
 | if you need | what fits | what this benchmark shows |
 |---|---|---|
 | a fixed list of formats (emails, phone numbers, IDs), at high volume, without the text leaving your machine | a local model (GLiNER-PII, Presidio) | free per call and fast (0.02 to 1.4 s per document), but they miss what only context reveals: 21% to 27% of the personal information in judgments gets through |
-| a policy, like "anything that could re-identify this person", on long documents | a decision model or a strong LLM | both read the guidelines as text; Jev lets 11% through against Haiku's 17%, five times faster |
+| a policy, like "anything that could re-identify this person", on long documents | a decision model or a strong LLM | both read the guidelines as text; Jev lets 11% through against Haiku's 17%, six times faster |
 | few false alarms on short, structured text | a strong LLM | precision 0.89 to 0.96 for Haiku; DeepSeek V4 Flash gets close at $0.09 per 1,000 documents |
 | a dial between leaking and over-masking | a method that scores each word (Jev, GLiNER-PII, Privacy Filter) | move one threshold; an LLM's trade-off only moves by rewording its prompt |
 | an answer for every document | a local model or a decision model | Jev answered every question; the LLMs failed on up to 13 of 127 judgments (loops, cut-offs) |
@@ -276,11 +278,10 @@ and where it may go:
 Whichever fits, real personal data needs a model you host or one run under a contract that
 allows it; none of the setups here was chosen for that.
 
-All in all, it depends: on what you need to catch, how much text you have, what you can
+All in all, it depends on what you need to catch, how much text you have, what you can
 spend, and where the text is allowed to go.
 
-The labels are one team's reading of a policy too. Two human experts labelling the same
-judgments reach only 0.86 F2 against each other, and some of what every method is marked
+The labels are one team's reading of a policy too. Some of what every method is marked
 wrong for (a city the policy leaves visible, "and" inside a court's name, cookie flags in
 Nemotron-PII) is a convention you might not share. Scored against your own definition,
 every number here would move.
@@ -292,22 +293,22 @@ Jev is a model from TypeSafe, served through OpenRouter's
 You send it a state and typed questions (yes/no, or pick one of a few options), and it
 answers each one with probabilities. Output is free; you pay for input tokens.
 
-PII detection fits that shape: it is one question per word ("is this personal
+PII detection fits that shape. It is one question per word ("is this personal
 information?"), and what you want back is a probability you can put a threshold on, not
 prose to parse.
 
 <img src="docs/asked.svg" alt="How Jev is asked, on one sentence: each word except stop words gets a question and a probability back; Mr S. Esmer scores 0.88 to 0.92 and is masked, applicants 0.10 and lawyer 0.36 stay, Ankara 0.98 is masked though the annotators left it visible; threshold 0.4, tuned on dev." width="100%">
 
-Decision models became a category while this was being built: OpenAI announced a
-Decisions API in limited preview on September 29, 2026, and Fastino's API-only GLiDE
-followed on October 1. Both came out too late for this run. A decision model that takes a
+Decision models became a category while this was being built. OpenAI announced a
+[Decisions API](https://openai.com/index/devday-2026-recap/) in limited preview on September 29, 2026, and Fastino released its
+API-only [GLiDE](https://fastino.ai/blog/introducing-glide-the-first-thinking-decision-model) the next day. Both came out too late for this run. A decision model that takes a
 state and typed questions is one `DecisionModel` class away (`lanes/decision.py`), and
 every question design runs on it unchanged.
 
-This is a snapshot from October 2026, and the field moves fast: new decision models and
-LLMs will make these numbers stale within months. What should last is the method: the same
-data, splits, scoring and harness, where a new model is one config entry or one class away
-and `make bench` reruns everything.
+This is a snapshot from October 2026, and the field moves fast. New decision models and
+LLMs will make these numbers stale within months. What should last is the method. The data,
+splits, scoring and harness stay the same, a new model is one config entry or one class
+away, and `make bench` reruns everything.
 
 ## 05 · Methods
 
@@ -315,19 +316,19 @@ Technical detail for anyone checking the work; the results above don't need it.
 
 | family | lanes | output |
 |---|---|---|
-| reference | `mask_all` (the floor) · `human` (TAB's second annotator against the first) | spans |
+| reference | `mask_all` (the floor) | spans |
 | rules | `regex`: emails, phones, IPs, card and ID numbers, dates, times | spans |
 | NER and small PII models, local | `presidio` (spaCy `en_core_web_lg`) · `privacy_filter` (OpenAI, 1.5B MoE, 50M active) · `gliner_pii` (NVIDIA, 570M) | spans, and a probability per word for the last two |
 | Jev (decision model) | `decision_<design>:jev`, by question design: `words`, one yes/no per word · `typed`, one choice per word (none, or a type) · `typed_skip`, `typed` minus stop words · `fields`, `typed` plus a "name of a kind of information" option · `fields_skip`, both · `bio`, yes/no plus "same item as the word before?" | a probability per word |
 | LLMs, via OpenRouter | `llm_sayback:<model>`: list the PII strings, code finds them in the text · `llm_offsets`: character offsets · `llm_tagged`: rewrite the text with tags | spans |
 
-→ **Lanes that read instructions get the same brief** (Jev and the LLMs): the dataset's own annotation guidelines (ai4privacy's and Nemotron-PII's label lists, TAB's published guidelines), then the six types to answer in (`taxonomy.definition`). Regex, Presidio and Privacy Filter run as shipped; GLiNER-PII gets a fixed list of label names.
+→ **Lanes that read instructions get the same brief** (Jev and the LLMs), the dataset's own annotation guidelines (ai4privacy's and Nemotron-PII's label lists, TAB's published guidelines), then the six types to answer in (`taxonomy.definition`). Regex, Presidio and Privacy Filter run as shipped; GLiNER-PII gets a fixed list of label names.
 
 → **Jev** in the results tables is `decision_fields_skip:jev`, the design that scored best on dev. It gets the whole document once as its state and one question per word, with the word bracketed in a few words of context. Questions are packed into as few calls as fit. Jev's docs give a 32k-token context; calls are packed up to an estimated 48k because larger calls were accepted. Counted in billed tokens, the typed designs went past 32k, mostly on TAB. There, `decision_typed:jev` and `decision_fields_skip:jev` answer slightly worse past 32k (Brier 0.073 against 0.068, and 0.077 against 0.072, on a similar share of PII) and `decision_typed_skip:jev` doesn't (`docs/results.md`, last section).
 
 → **Per-word scores become spans through a threshold tuned on dev** (word-level F2, never on test), for every lane that scores words. Three structured decoders (hysteresis, gap closing, Viterbi) were tuned the same way and are reported beside it; on the dev pilot none beat the threshold by more than about 0.02 F2.
 
-→ **Privacy Filter**'s own spans come from OpenAI's constrained Viterbi (`opf` package) at its default operating point and match OpenAI's reference runtime; they are in the decoder table. Its headline row uses the tuned threshold on its per-word probability, like the other scorers. That threshold lands at 0.001, the bottom of the grid: at F2 it pays to mask anything the model gives any weight to.
+→ **Privacy Filter**'s own spans come from OpenAI's constrained Viterbi (`opf` package) at its default operating point and match OpenAI's reference runtime; they are in the decoder table. Its headline row uses the tuned threshold on its per-word probability, like the other scorers. That threshold lands at 0.001, the bottom of the grid, because at F2 it pays to mask anything the model gives any weight to.
 
 → **GLiNER-PII** returns candidates down to a 0.05 score; its card default is 0.5. Long documents run in windows sized to its 384-token limit, overlapping by 50 words.
 
@@ -394,28 +395,28 @@ labels exists; all three sets are either synthetic or legal.
 
 ## 07 · Scoring
 
-→ **Leaks**: the share of gold words left unmasked (1 − recall), and the share of documents with any gold word that came out with none left. A failed answer counts as leaking the whole document.
+→ **Leaks** are the share of gold words left unmasked (1 − recall), and the share of documents with any gold word that came out with none left. A failed answer counts as leaking the whole document.
 
-→ **Headline: word-level F2.** A word is gold if a gold span overlaps it, predicted if a predicted span does. F2 weights recall: a leak costs more than an over-mask. Word level credits masking street and city as one span, and counts a half-masked name as a leak.
+→ **The headline is word-level F2.** A word is gold if a gold span overlaps it, predicted if a predicted span does. F2 weights recall, so a leak costs more than an over-mask. Word level credits masking street and city as one span, and counts a half-masked name as a leak.
 
-→ **Format vs context**: recall on each kind of PII, and on TAB, how much of what the annotators left in clear a method masks anyway.
+→ **Format vs context** is recall on each kind of PII, and on TAB, how much of what the annotators left in clear a method masks anyway.
 
-→ **Exact span match** next to it, the usual NER number.
+→ **Exact span match** sits next to it, the usual NER number.
 
-→ **Recall by type and by each dataset's own labels**, precision by the type a method claims, and on TAB and Nemotron-PII the strings each method most often leaks or over-masks (ai4privacy's licence keeps its text out of the published results).
+→ **Recall is broken down by type and by each dataset's own labels**, precision by the type a method claims, and on TAB and Nemotron-PII the strings each method most often leaks or over-masks (ai4privacy's licence keeps its text out of the published results).
 
-→ **Calibration** (ECE, Brier, reliability bins) for every method that gives a probability per word.
+→ **Calibration** (ECE, Brier, reliability bins) is measured for every method that gives a probability per word.
 
-→ **Cost and time**: $ per 1k docs from each response's reported cost, calls and tokens per doc, latency mean / p50 / p95 per doc (for Jev, whose questions on a long doc go out as parallel calls, the slowest of them). Cached reruns report the original numbers. Local models run on an Apple M1 Pro (GPU where supported).
+→ **Cost and time** are $ per 1k docs from each response's reported cost, calls and tokens per doc, latency mean / p50 / p95 per doc (for Jev, whose questions on a long doc go out as parallel calls, the slowest of them). Cached reruns report the original numbers. Local models run on an Apple M1 Pro (GPU where supported).
 
-→ **Uncertainty**: 95% intervals by resampling whole documents, and paired intervals on the same documents for "is A really better than B".
+→ **Uncertainty** is 95% intervals by resampling whole documents, and paired intervals on the same documents for "is A really better than B".
 
-→ **Two reference rows**: mask everything (the floor) and a second human expert who labelled the same judgments (TAB's second annotator, scored against the first: the ceiling, on the 105 judgments both labelled). F2 leans on recall hard enough that masking everything scores 0.36 to 0.51 depending on how dense the PII is, so read every row against its dataset's floor.
+→ **The floor** is masking everything. F2 leans on recall hard enough that it scores 0.36 to 0.51 depending on how dense the PII is, so read every row against its dataset's floor.
 
 ## 08 · Run it
 
 ```sh
-uv sync --extra dev --extra ner      # ner: Presidio, spaCy model, torch, Privacy Filter, GLiNER-PII
+uv sync --extra dev --extra ner      # ner: local models, and spaCy for Jev's stop-word skip
 cp .env.template .env                # add an OpenRouter key
 uv run jev-vs-pii fetch              # datasets into data/, never committed
 make bench-free                      # rules and local models on the three test sets: $0
@@ -439,15 +440,15 @@ nothing. `jev-vs-pii export runs/test` rewrites `docs/results.md` and `docs/data
 | `jev_vs_pii/metrics/` | word and exact scoring, calibration, bootstrap, cost, error strings, result rows |
 | `jev_vs_pii/run/` | runner, tiers, store, threshold tuning |
 | `jev_vs_pii/report/` | Markdown tables and the `docs/data/` export |
-| `docs/` | every results table, the charts and the race page (`docs/race/`), and the numbers behind them (`docs/data/`) |
+| `docs/` | every results table, the charts and the race page (`docs/race/`), and the numbers behind them (`docs/data/`); the charts and race page are drawn from `docs/data/` outside this package |
 
 ## 10 · Limits
 
 → Not a deployment recommendation (§03). Models were chosen to fit a small budget, so no frontier-size LLM is in it, and none was chosen for GDPR terms.
 
-→ English only, and no real everyday text: two synthetic sets and one legal one.
+→ English only, and no real everyday text, only two synthetic sets and one legal one.
 
-→ Public datasets may be in the models' training data. GLiNER-PII was trained on Nemotron-PII's train split: its test numbers come from the test file, but its tuned threshold was picked on dev, which samples train. Privacy Filter reports results on pii-masking-300k.
+→ Public datasets may be in the models' training data. GLiNER-PII was trained on Nemotron-PII's train split. Its test numbers come from the test file, but its tuned threshold was picked on dev, which samples train. Privacy Filter reports results on pii-masking-300k.
 
 → Thresholds are tuned on 20 dev docs per dataset.
 
