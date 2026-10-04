@@ -4,29 +4,67 @@ How good is [Jev](https://docs.typesafe.ai), a decision model, at finding person
 information in text, next to the tools used today and to current LLMs?
 
 **Short answer.** On court judgments, where context decides what identifies someone, Jev
-ties Claude Haiku 4.5 for first place (F2 0.834 against 0.819; paired difference +0.015,
-95% interval −0.002 to +0.032) at under a fifth of its latency and about three quarters of
-its cost, and finds more of the context-only personal information than the second human
-annotator. It also lets the least through: 11% of the personal information in the
-judgments stays unmasked, against 17% for Haiku and 14% for the second annotator. On short
-synthetic text the larger LLMs stay ahead by 0.02 to 0.04 F2. How Jev
-is asked matters as much as the model: one extra answer option took it from 0.84 to 0.91
-on synthetic text (§02).
+ties Claude Haiku 4.5 for the best score, runs about five times faster, costs about three
+quarters as much, and lets the least personal information through: 11% stays unmasked,
+against 17% for Haiku. On short synthetic text the larger LLMs stay ahead.
+
+**What this project found**
+
+- → **A decision model can match a strong LLM where anonymisation is hard.** On European Court of Human Rights judgments Jev scores as well as Haiku (F2 0.83 against 0.82), finds 81% of the details that identify someone only through context (a relative, an employer, a town), and answers in 0.7 s against 3.8 s.
+- → **How you ask matters as much as which model you ask.** Jev first masked "Account" in "Account number: 4417…", because the question asked what each word *is*. One extra answer option, "the name of a kind of information", took it from 0.84 to 0.91 F2 on synthetic text. A reworded prompt took Haiku from 0.77 to 0.82 on judgments. Each change was picked on a separate dev set before the test run (§06).
+- → **Thinking didn't help.** DeepSeek V4 Flash with reasoning on scored the same or lower than with it off, and took 12 times as long on judgments.
+- → **The labels set the ceiling.** Two human experts labelling the same judgments disagree on about 14% of the personal information (F2 0.86 between them). Part of every method's "error" is a convention you may not share: a city the policy leaves visible, "and" inside a court's name, cookie flags counted as personal data. How high a score can go depends on what you count (§04).
+- → **Usable today? For some uses.** Every paid method here sends the text to a third-party API through OpenRouter, and none was chosen for GDPR or data-residency terms. Jev's speed and its per-word probabilities make it a real option for anonymisation, but on real personal data it needs a provider contract that allows it, or a decision model you run yourself. The first open-weight one, GLiNER2.5-Decide (September 2026), classifies whole texts rather than single words; once a decision model can do this on your own hardware or under a compliant contract, it becomes a practical choice (§05).
 
 Every method runs alone on the same gold data from three datasets (500 synthetic texts,
-500 business documents, 127 court judgments) and is scored on accuracy, calibration, cost
-and latency. Total spend for everything in this repo: $11.83.
+500 business documents, 127 court judgments) and is scored on accuracy, leaks,
+calibration, cost and latency. Total spend for everything in this repo: $11.83.
 
-<img src="docs/hero.svg" alt="TAB court judgments, word-level F2 against median seconds per document: Jev 0.83 at 0.66 s, Haiku 4.5 0.82 at 3.8 s; second human annotator 0.86." width="100%">
+<br>
+
+**Score against speed, on court judgments**
+
+<img src="docs/hero.svg" alt="TAB court judgments, word-level F2 against median seconds per document: Jev 0.83 at 0.66 s, Haiku 4.5 0.82 at 3.8 s; a second human expert 0.86." width="100%">
+
+<br>
+
+**Watch them work**
 
 <img src="docs/race.gif" alt="Replay: Jev and Claude Haiku 4.5 reading the same ten test documents side by side, in real time. Jev finishes each in under a second, Haiku in 2 to 5 seconds; the tally ends Jev 10, Haiku 0 on speed and Jev 2, Haiku 8 on F2." width="100%">
 
-Jev and Haiku on the first five test documents of TAB and of Nemotron-PII, replayed from
-the recorded answers in real time. These ten favour Haiku on F2 (8 to 2); over every test
-document, Jev scores higher on 73 of 127 judgments and Haiku on 371 of 500 business
-documents. [Race them yourself](https://alanviollier.github.io/jev-vs-pii/race/).
+A replay of Jev and Haiku reading the same documents, built from their recorded answers
+and timed in real time. Jev's highlight sweeps word by word as its probabilities come
+back; Haiku's answer streams in as it writes; every word lights up as caught, leaked or
+over-masked. [The race page](https://alanviollier.github.io/jev-vs-pii/race/) lets you
+pick a document, slow it down five times, and read each document's numbers. These ten (the
+first five test documents of TAB and of Nemotron-PII) favour Haiku on F2, 8 to 2; over
+every test document, Jev scores higher on 73 of 127 judgments and Haiku on 371 of 500
+business documents.
+
+<br>
+
+**Score on all three datasets**
 
 <img src="docs/where.svg" alt="Word-level F2 on the three test sets with 95% intervals: ai4privacy Jev 0.91, Haiku 0.95, DeepSeek V4 Flash 0.94; Nemotron-PII Jev 0.90, Haiku 0.94, DeepSeek 0.94; TAB Jev 0.83, Haiku 0.82, DeepSeek 0.75." width="100%">
+
+<br>
+
+**What gets through:** the share of the personal information left unmasked.
+
+| | ai4privacy | Nemotron-PII | TAB |
+|---|---|---|---|
+| Jev | 6.7% | **5.0%** | **11.3%** |
+| Claude Haiku 4.5 | **3.0%** | 6.3% | 16.9% |
+| DeepSeek V4 Flash | 4.1% | 5.9% | 26.3% |
+| GLiNER-PII (local) | 6.1% | 13.3% | 20.9% |
+| a second human expert | – | – | 13.7% |
+
+Jev catches a lot and masks more around it. Some of what it is marked wrong for is
+arguably personal (a city, "born" next to a birth date), and some of what counts as a leak
+is a labelling convention: these datasets set the ceiling as much as the models do. Every
+method's numbers are in §01, the details in §02 and §04.
+
+<br>
 
 ## 01 · Results
 
@@ -50,7 +88,7 @@ in each column in bold, reference rows aside.
 | Presidio (local) | 0.587 | 0.671 | 0.744 | 0.762 |
 | regex | 0.539 | 0.433 | 0.505 | 0.614 |
 | mask everything (floor) | 0.510 | 0.358 | 0.405 | 0.214 |
-| second human annotator (ceiling; 105 of the 127 judgments) | – | – | 0.860 | 0.856 |
+| a second human expert, same judgments (ceiling; 105 of the 127) | – | – | 0.860 | 0.856 |
 
 † GLiNER-PII was trained on Nemotron-PII's train split. Jev's question designs and the
 LLM prompt went through a few rounds, each chosen on the dev pilot (§06).
@@ -73,9 +111,9 @@ Lower is better on the first, higher on the second.
 | Privacy Filter (local) | 14.3% · 50% | 34.3% · 24% | 49.5% · 0% |
 | Presidio (local) | 45.1% · 15% | 36.8% · 11% | 26.7% · 0% |
 | regex | 51.3% · 18% | 62.1% · 4% | 54.9% · 0% |
-| second human annotator | – | – | 13.7% · 6% |
+| a second human expert | – | – | 13.7% · 6% |
 
-On judgments almost no document comes out clean for anyone, the second annotator
+On judgments almost no document comes out clean for anyone, the second human expert
 included, so read TAB's second number as noise and its first as the result.
 
 Cost and speed per document, on short text (Nemotron-PII, ~90 words) and long text (TAB,
@@ -105,8 +143,8 @@ Chart-ready numbers: [`docs/data/`](docs/data).
 
 **Jev**
 
-- → **It leaks the least where it matters most.** On court judgments 11.3% of the personal information gets through Jev, against 16.9% for Haiku, 13.7% for the second human annotator and 21% to 55% for every method that isn't Jev or Haiku. On Nemotron-PII Jev's two designs leak the least too (4.2% and 5.0%). On ai4privacy the LLMs leak less: 3.0% to 4.4% for all but GPT-4.1 nano, against Jev's 6.7%.
-- → **Level with Haiku on F2 where context decides.** On TAB, Jev scores 0.834 against Haiku's 0.819 (paired difference +0.015, [−0.002, +0.032]) and is 0.09 to 0.35 ahead of every method that isn't Jev or Haiku. It recalls 81% of the context-only personal information (the second annotator 77%, Haiku 73%) and, by TAB's own evaluation script, 99.6% of direct identifiers (Haiku 91.6%).
+- → **It leaks the least where it matters most.** On court judgments 11.3% of the personal information gets through Jev, against 16.9% for Haiku, 13.7% for a second human expert and 21% to 55% for every method that isn't Jev or Haiku. On Nemotron-PII Jev's two designs leak the least too (4.2% and 5.0%). On ai4privacy the LLMs leak less: 3.0% to 4.4% for all but GPT-4.1 nano, against Jev's 6.7%.
+- → **Level with Haiku on F2 where context decides.** On TAB, Jev scores 0.834 against Haiku's 0.819 (paired difference +0.015, [−0.002, +0.032]) and is 0.09 to 0.35 ahead of every method that isn't Jev or Haiku. It recalls 81% of the context-only personal information (a second human expert 77%, Haiku 73%) and, by TAB's own evaluation script, 99.6% of direct identifiers (Haiku 91.6%).
 - → **How it's asked decides how good it is.** The first design asked "what is the bracketed word?" with six types or none. In "Account number: 4417…", Jev answered ID for "Account" and "number": the words are about an ID, which is what the question asked. One extra option, "the name of a kind of information, not the information itself", added 0.073 F2 on ai4privacy, 0.064 on Nemotron-PII and 0.012 on TAB (paired, against the same design without it). Not asking about stop words added 0.009 to 0.041 more. Every step is in §06.
 - → **On short synthetic text, the larger LLMs lead.** Haiku, Qwen3 235B and DeepSeek V4 Flash, with or without thinking, are 0.02 to 0.04 F2 ahead on ai4privacy and Nemotron-PII. Jev ties Qwen3 30B on both, ties GPT-4.1 nano on Nemotron-PII and beats it on ai4privacy, and is ahead of every local model on every dataset.
 - → **It still masks more than the LLMs.** Precision 0.83 / 0.74 / 0.67 on the three datasets, against Haiku's 0.89 / 0.96 / 0.77, so Haiku keeps the best TAB F1 (0.802 against 0.765). On TAB it over-masks "applicant" and "born" most; on Nemotron-PII, field names it still takes for values ("number", "date").
@@ -295,7 +333,7 @@ labels exists; all three sets are either synthetic or legal.
 - → **Calibration** (ECE, Brier, reliability bins) for every method that gives a probability per word.
 - → **Cost and time**: $ per 1k docs from each response's reported cost, calls and tokens per doc, latency mean / p50 / p95 per doc (for Jev, whose questions on a long doc go out as parallel calls, the slowest of them). Cached reruns report the original numbers. Local models run on an Apple M1 Pro (GPU where supported).
 - → **Uncertainty**: 95% intervals by resampling whole documents, and paired intervals on the same documents for "is A really better than B".
-- → **Two reference rows**: mask everything (the floor) and TAB's second annotator (the ceiling, on the 105 judgments it annotated). F2 leans on recall hard enough that masking everything scores 0.36 to 0.51 depending on how dense the PII is, so read every row against its dataset's floor.
+- → **Two reference rows**: mask everything (the floor) and a second human expert who labelled the same judgments (TAB's second annotator, scored against the first: the ceiling, on the 105 judgments both labelled). F2 leans on recall hard enough that masking everything scores 0.36 to 0.51 depending on how dense the PII is, so read every row against its dataset's floor.
 
 ## 09 · Run it
 

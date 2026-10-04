@@ -4,8 +4,8 @@ repos:
     rev: v5.0.0
     hooks:
       - id: detect-private-key            # SSH / RSA keys in a commit
-      - id: check-added-large-files       # 8 MB: the README's race GIF is ~6 MB
-        args: ['--maxkb=8000']
+      - id: check-added-large-files       # 10 MB: the README's race GIF is ~9 MB
+        args: ['--maxkb=10000']
       - id: check-merge-conflict          # left a `<<<<<<<` marker
       - id: check-yaml                    # all .yaml / .yml parse
       - id: check-toml                    # all .toml parse
