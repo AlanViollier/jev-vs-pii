@@ -222,6 +222,12 @@ score doesn't capture.
 - → **Cost at volume.** Local models cost nothing per document but need hardware. Jev is fast and bills input only, but its cost grows with document length. LLM cost follows model size.
 - → **Picking your own trade-off.** Methods that score each word (Jev, Privacy Filter, GLiNER-PII) let you move a threshold: fewer leaks for more over-masking, or the reverse.
 
+The labels are one team's reading of a policy too. Two human experts labelling the same
+judgments reach only 0.86 F2 against each other, and some of what every method is marked
+wrong for (a city the policy leaves visible, "and" inside a court's name, cookie flags in
+Nemotron-PII) is a convention you might not share. Scored against your own definition, every
+number here would move.
+
 A fixed scope at high volume over sensitive text points one way, a scope that changes per
 client or per document type points another. The top row of the table answers neither.
 
