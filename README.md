@@ -18,11 +18,13 @@ against 17% for Haiku. On short synthetic text the larger LLMs stay ahead.
 
 → **Usable today? Not yet, but soon.** Every paid method here sends the text to a third-party API through OpenRouter, and none was chosen for GDPR or data-residency terms. OpenAI announced its own decision model in September 2026. Once a provider releases one as open weights, or runs it under a GDPR-compliant contract, a decision model becomes a real option for anonymisation, depending on the scope (§04).
 
-**What this is, and isn't.** A benchmark: today's options, on the same data, on a
-personal budget, to see how they compare. It is not a production anonymisation system.
-None of the paid models here was set up for real personal data, and a production solution
-would be built for its own scope, with a compliant model and its own checks. That is
-doable today; this repo measures the parts.
+**What this is, and isn't.** A comparison of approaches, not a shortlist. The models here
+stand in for each kind of method: a decision model, LLMs from small to large, and the usual
+local tools, all run the same way on the same data so they can be compared on equal terms.
+They are not the models to put on real personal data. A production solution depends on its
+scope, budget and hardware, and on which GDPR-compliant decision models and LLMs exist when
+it is built; it would be designed around those, with its own checks. That is doable today;
+this repo shows how the approaches compare, not which product to pick.
 
 Every method runs alone on the same gold data from three datasets (500 synthetic texts,
 500 business documents, 127 court judgments) and is scored on accuracy, leaks,
@@ -254,7 +256,8 @@ response is cached by request, so a rerun of finished work is free (§08).
 method went through a third-party API with no GDPR or data-residency terms, so none of
 these setups should see real personal data. A production system would need a compliant
 provider or a model you host, plus a pipeline built for your own scope, data and review
-process. This repo measures how the options compare; §03 lists what decides between them.
+process. This repo compares the approaches on equal terms; §03 lists what decides
+between them.
 
 ## 03 · No single winner
 
