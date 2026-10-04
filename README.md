@@ -266,7 +266,7 @@ and where it may go:
 
 | if you need | what fits | what this benchmark shows |
 |---|---|---|
-| a fixed list of formats (emails, phone numbers, IDs), at high volume, without the text leaving your machine | a local model (GLiNER-PII, Presidio) | free per call and fast (0.02 to 2.3 s), but they miss what only context reveals: 21% to 27% of the personal information in judgments gets through |
+| a fixed list of formats (emails, phone numbers, IDs), at high volume, without the text leaving your machine | a local model (GLiNER-PII, Presidio) | free per call and fast (0.02 to 1.4 s per document), but they miss what only context reveals: 21% to 27% of the personal information in judgments gets through |
 | a policy, like "anything that could re-identify this person", on long documents | a decision model or a strong LLM | both read the guidelines as text; Jev lets 11% through against Haiku's 17%, five times faster |
 | few false alarms on short, structured text | a strong LLM | precision 0.89 to 0.96 for Haiku; DeepSeek V4 Flash gets close at $0.09 per 1,000 documents |
 | a dial between leaking and over-masking | a method that scores each word (Jev, GLiNER-PII, Privacy Filter) | move one threshold; an LLM's trade-off only moves by rewording its prompt |
