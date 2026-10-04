@@ -18,6 +18,12 @@ against 17% for Haiku. On short synthetic text the larger LLMs stay ahead.
 
 → **Usable today? Not yet, but soon.** Every paid method here sends the text to a third-party API through OpenRouter, and none was chosen for GDPR or data-residency terms. OpenAI announced its own decision model in September 2026. Once a provider releases one as open weights, or runs it under a GDPR-compliant contract, a decision model becomes a real option for anonymisation, depending on the scope (§04).
 
+**What this is, and isn't.** A benchmark: today's options, on the same data, on a
+personal budget, to see how they compare. It is not a production anonymisation system.
+None of the paid models here was set up for real personal data, and a production solution
+would be built for its own scope, with a compliant model and its own checks. That is
+doable today; this repo measures the parts.
+
 Every method runs alone on the same gold data from three datasets (500 synthetic texts,
 500 business documents, 127 court judgments) and is scored on accuracy, leaks,
 calibration, cost and latency. Total spend for everything in this repo: $11.83.
@@ -185,6 +191,12 @@ judgments ($3.79 against $5.22); on these datasets it passes Haiku at about 1,20
 
 <img src="docs/cost.svg" alt="Cents per test document against words in the document, three datasets pooled: Jev's cost rises in a straight line with length, Haiku's flattens; Jev costs more past about 1,200 words." width="100%">
 
+Asking about fewer words is the lever. Skipping common words like "the" and "his" nearly
+halved Jev's cost on judgments ($5.76 to $3.12 per 1,000, before the field-name option was
+added) and raised its score. The skip here is the simplest version, a fixed word list; a
+smarter choice of which words to ask about, such as a cheap first pass that flags the
+candidates, would likely cut cost and over-masking further.
+
 **Can you trust its output?** Every Jev call returned a probability for every question (one
 call failed once and went through on retry), and those probabilities are well calibrated:
 expected calibration error 0.04 to 0.08, as good as the local models. The LLMs failed on
@@ -193,8 +205,8 @@ finding nothing.
 
 ### About the method
 
-**Weren't the designs changed after seeing results?** Yes, on both sides, and that is how
-the numbers got right. The first full run had three problems that only its errors showed:
+**Did you tweak Jev until it won?** Its question design did change after the first run,
+and so did the LLMs' prompt; that is how the numbers got right. The first full run had three problems that only its errors showed:
 Jev masked field names like "Account number", the stop-word skip also skipped "May", "US"
 and number words, and LLM answers written with straight quotes didn't match the curly
 quotes in the judgments. Each fix, and a reworded LLM prompt, was checked on a separate
@@ -202,8 +214,8 @@ quotes in the judgments. Each fix, and a reworded LLM prompt, was checked on a s
 dev run now lists every method's most leaked and over-masked words, so problems like
 these show up before a full run.
 
-**Isn't tuning a threshold an unfair edge over the LLMs?** It's tuned on the 20 dev
-documents per dataset, never on test. A probability you can set a threshold on is part of
+**Jev gets a threshold and the LLMs don't. Is that fair?** The threshold is picked on the
+20 dev documents per dataset, never on test. A probability you can set a threshold on is part of
 what Jev offers; an LLM gives one answer, and changing its trade-off means rewording the
 prompt.
 
@@ -229,10 +241,6 @@ never finished 13 judgments, and took 12 times as long. The prompt does a lot: t
 datasets' own guidelines instead of a one-line definition took Qwen3 235B from 0.53 to
 0.78 on judgments in the dev run, and the exact-copy prompt took Haiku from 0.77 to 0.82.
 
-**Did the local models see this data in training?** GLiNER-PII was trained on
-Nemotron-PII's train split; its test numbers come from the test file. OpenAI reports
-Privacy Filter results on pii-masking-300k, the source of the ai4privacy set.
-
 ### Practical
 
 **Why no GPT-5, Claude Sonnet or Gemini Pro?** Budget: everything here cost $11.83. Haiku
@@ -242,7 +250,11 @@ rerun away.
 **Can I rerun it?** `make bench`, about $7.40 of OpenRouter calls and 1 to 2 hours. Every
 response is cached by request, so a rerun of finished work is free (§08).
 
-**Can I use one of these on real data?** Not as tested. §03.
+**Can I use one of these on real personal data?** Not the way they ran here. Every paid
+method went through a third-party API with no GDPR or data-residency terms, so none of
+these setups should see real personal data. A production system would need a compliant
+provider or a model you host, plus a pipeline built for your own scope, data and review
+process. This repo measures how the options compare; §03 lists what decides between them.
 
 ## 03 · No single winner
 
@@ -286,9 +298,6 @@ Decisions API in limited preview on September 29, 2026, and Fastino's API-only G
 followed on October 1. Both came out too late for this run. A decision model that takes a
 state and typed questions is one `DecisionModel` class away (`lanes/decision.py`), and
 every question design runs on it unchanged.
-
-This is a look at what models a personal budget can afford can do. It is not a
-recommendation of what to deploy.
 
 ## 05 · Methods
 
