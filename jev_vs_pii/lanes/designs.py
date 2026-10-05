@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cache
+from typing import cast
 
 from jev_vs_pii.clients import Choice, Noul
 from jev_vs_pii.clients.decisions import ChoiceAnswer, NoulAnswer
@@ -124,8 +125,10 @@ def _stop_words() -> frozenset[str]:
     from spacy.lang.en.lex_attrs import like_num  # the ner extra
     from spacy.lang.en.stop_words import STOP_WORDS
 
+    ## spaCy ships no types; the cast keeps mypy's verdict the same with or without it installed.
+    is_number = cast(Callable[[str], bool], like_num)
     ## Number words ("three years", "forty") can be part of a date, a duration or an age.
-    numbers = {w for w in STOP_WORDS if like_num(w)}  # type: ignore[no-untyped-call]  # spaCy ships no types
+    numbers = {w for w in STOP_WORDS if is_number(w)}
     return frozenset(STOP_WORDS) - numbers - _STOP_WORDS_ALWAYS_ASKED
 
 
